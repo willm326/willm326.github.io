@@ -2,6 +2,10 @@ body {
   background-color: lavender;
 }
 
+img {
+  width: 250px;
+}
+
 .main-nav {
   background-color: #d8a6e6;
 }
