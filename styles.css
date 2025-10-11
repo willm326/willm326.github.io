@@ -1,3 +1,33 @@
 body {
-background-color: lavender;
+  background-color: lavender;
+}
+
+.main-nav {
+  background-color: #d8a6e6;
+}
+
+.nav-list {
+  list-style: none;
+  padding: 12px;
+  padding-left: 20px;
+
+  font-family: sans-serif;
+
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  gap: 20px;
+}
+
+.nav-element a:link {
+  color: black;
+  text-decoration: none;
+}
+
+.nav-element a:visited {
+  color: black;
+}
+
+.nav-element a:hover {
+  color: #777;
 }
