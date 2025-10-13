@@ -37,6 +37,7 @@ header {
   flex-direction: row;
   align-items: center;
   gap: 20px;
+  justify-content: space-between;
 }
 
 .content {
@@ -78,10 +79,16 @@ header {
 
 /* Projects Page Style */
 
+.project-section {
+  margin-bottom: 30px;
+}
+
 .project-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 2%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-items: center;
+  justify-content: left;
 }
 
 .project {
@@ -90,6 +97,7 @@ header {
   padding: 15px;
   border-radius: 10px;
   box-shadow: 10px 5px 7px #977de45e;
+  width: 275px;
 }
 
 .project img {
@@ -104,10 +112,10 @@ header {
   font-style: italic;
 }
 
-.project-grid a:link {
+.project:link {
   text-decoration: none;
 }
 
-.project-grid a:hover .project {
+.project:hover {
   background-color: #777;
 }
