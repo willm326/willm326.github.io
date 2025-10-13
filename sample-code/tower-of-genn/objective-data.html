@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript">
+class_name ObjectiveData extends Resource
+## Objective data resource.
+##
+## A resource to store data for the objectives in the game. To add a new objective,
+## update all the export variables. You may also need to create a new [Objective]
+## for checking objective completion.
+
+
+## Enum representing the type of this objective.
+enum Type {STANDARD, HAZARD}
+
+## Name of the objective, will be displayed in game
+@export
+var title: String:
+	set(new_title):
+		title = new_title
+		emit_changed()
+
+## The difficulty of the objective, with 1 as the easiest and 5 as the most difficult
+@export_range(1, 5)
+var difficulty: int = 1:
+	set(new_difficulty):
+		difficulty = new_difficulty
+		emit_changed()
+
+## A description of the objective to be shown to the player in game
+@export_multiline
+var description: String:
+	set(new_description):
+		description = new_description
+		emit_changed()
+
+## An additional optional description used for objectives to easily update progress
+@export_multiline
+var progress: String:
+	set(new_progress):
+		progress = new_progress
+		emit_changed()
+
+## Amount of stability to give the player after completion
+@export
+var stability: int = 0:
+	set(new_stability):
+		stability = new_stability
+		emit_changed()
+
+## Whether the objective is a standard or hazard objective
+@export
+var type: Type
+
+## The type of hazard this objective is related to (for hazard objectives only)
+@export
+var hazard_type: String = ""
+
+## Color of the [ObjectiveCard]
+@export_color_no_alpha
+var color: Color:
+	set(new_color):
+		color = new_color
+		emit_changed()
+
+## [Objective] containing functions that determine when the objective is completed
+@export
+var objective_scene: PackedScene
+
+## Changes info based on the config file.
+func setup_config() -> void:
+	var key: String = Utils.convert_to_snake_case(title, ["!", "?", ".", ","])
+	key += "_reward"
+	self.stability = ConfigReader.get_config_data(key, self.stability, true)
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>

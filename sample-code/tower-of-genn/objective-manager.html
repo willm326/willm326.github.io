@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript">
+class_name ObjectiveManager extends Node
+## Objective controller system.
+##
+## Selects new objectives and manages them during gameplay.
+
+
+## Emitted when an objective is added. [param objective_data] is a reference
+## to the corresponding resource of the added objective
+signal objective_added(objective_data: ObjectiveData)
+## Emitted when an objective is completed. [param objective_data] is a reference
+## to the corresponding resource of the completed objective
+signal objective_completed(objective_data: ObjectiveData)
+## Signals when an objective generates stability due to completion.
+signal stability_generated(amount: int)
+
+
+## List of paths to objective resources to instantiate as tasks for the player
+@export var objective_list: Array[ObjectiveData]
+## The tower that objectives will reference
+@export var tower: Tower
+## The max number of objectives the player will get automatically through placing blocks
+@export var max_standard_objectives: int = 1
+
+@export_category("Hazard Objective Parameters")
+## The max number of objectives the player will get through placing hazards
+@export var max_hazard_objectives: int = 1
+## The height the player starts receiving hazard objectives
+@export var objective_height: int = 30
+## Chance of getting an hazard objective when placing a hazard (out of 100)
+@export_range(0, 100)
+var objective_chance: int = 20
+
+# Stores the currently active objectives (that are being updated as the player places pieces)
+var _active_objectives: Array[Objective]
+# Last completed objective, to prevent getting the same objective after completing it
+var _prev_objective: ObjectiveData
+
+
+func _ready() -> void:
+	max_standard_objectives = ConfigReader.get_config_data("max_standard_objective_count", max_standard_objectives)
+	max_hazard_objectives = ConfigReader.get_config_data("max_hazard_objective_count", max_hazard_objectives)
+	objective_height = ConfigReader.get_config_data("hazard_objective_height_limit", objective_height)
+	objective_chance = ConfigReader.get_config_data("hazard_objective_chance", objective_chance)
+	
+	# read config values for all objective
+	for objective: ObjectiveData in objective_list:
+		objective.setup_config()
+	
+	# Cap the max at the number of objectives we actually have in case the config
+	# provided max exceeds this.
+	if max_standard_objectives > objective_list.size():
+		max_standard_objectives = objective_list.size()
+	
+	if max_hazard_objectives > objective_list.size():
+		max_hazard_objectives = objective_list.size()
+
+
+# Adds an objective from the given path to the game
+func _add_objective(objective_data: ObjectiveData, current_piece: Piece) -> void:
+	if objective_data != null:
+		var objective: Objective = objective_data.objective_scene.instantiate()
+		self.add_child(objective)
+		_active_objectives.append(objective)
+		# TODO: replace this with specific signals that are mediated by
+		# ObjectiveManager
+		objective.setup(tower, objective_data, current_piece)
+		objective_added.emit(objective_data)
+
+
+# Removes an active objective
+func _remove_objective(objective: Objective) -> void:
+	_active_objectives.erase(objective)
+	objective.free()
+
+
+# Selects an objective from [param list] of the appropriate [param type], preventing the same objective
+# from appearing twice in a row. [param hazard_type] checks if the objective
+# corresponds to the appropriate hazard. Returns null if there is no valid objective in the given list
+func _pick_objective(type: ObjectiveData.Type, hazard_type: String = "", list: Array[ObjectiveData] = objective_list) -> ObjectiveData:
+	# The list is shuffled and iterated through to ensure each objective is only checked once
+	list.shuffle()
+	for objective: ObjectiveData in list:
+		if _is_valid(objective, type, hazard_type):
+			return objective
+	# If there was no valid objectives
+	return null
+
+
+func _is_valid(objective_data: ObjectiveData, type: ObjectiveData.Type, hazard_type: String = "") -> bool:
+	# Check if objective is of proper type
+	if objective_data.type != type:
+		return false
+	if type == ObjectiveData.Type.HAZARD and not objective_data.hazard_type.contains(hazard_type):
+		return false
+	# Avoid two same objectives in a row
+	if _prev_objective == objective_data:
+		return false
+	# Check to make sure active objectives aren't picked
+	for objective: Objective in _active_objectives:
+		if objective.data == objective_data:
+			return false
+	return true
+
+
+func _count_objectives_of_type(type: ObjectiveData.Type) -> int:
+	var count: int = 0
+	for objective: Objective in _active_objectives:
+		if objective.data.type == type:
+			count += 1
+	return count
+
+
+func _new_hazard_objective(_piece: Piece) -> void:
+	# TODO: fix this (broken API)
+	#if piece.has_hazard():
+		#if Utils.random_choice([true, false], [objective_chance, 100 - objective_chance]):
+			#var objective: ObjectiveData = _pick_objective(ObjectiveData.Type.HAZARD, piece.hazard.name)
+			#_add_objective(objective)
+	pass
+
+
+# Checks objectives list for completed objectives and removes them
+func _remove_completed_objectives() -> void:
+	# Need to use to_remove to avoid issues with modifying the array while iterating
+	var to_remove: Array[Objective] = _active_objectives.filter(
+		# Construct an array with all of the completed objectives
+		func(objective: Objective) -> bool:
+			return objective.completed
+	)
+	# Actually remove them
+	for objective: Objective in to_remove:
+		_remove_objective(objective)
+
+
+# Checks a single objective for completion and emits completion signal
+# Use sparingly outside of the check all objectives function
+func _check_objective_completion(objective: Objective) -> void:
+	if objective.completed:
+		if objective.data.type == ObjectiveData.Type.STANDARD:
+			_prev_objective = objective.data
+		objective_completed.emit(objective.data)
+		stability_generated.emit(objective.data.stability)
+
+
+# Passes over all objectives and checks each one for completion.
+# Then deletes the completed ones.
+func _check_all_objectives_for_completion() -> void:
+	for objective: Objective in _active_objectives:
+		_check_objective_completion(objective)
+	_remove_completed_objectives()
+
+
+func _on_tower_piece_placed(piece: Piece) -> void:
+	# TODO: fix hazard objectives
+	#if tower.height >= objective_height and _count_objectives_of_type(ObjectiveData.Type.HAZARD) < max_hazard_objectives:
+		#_new_hazard_objective(piece)
+	for objective in _active_objectives:
+		objective.update_piece_placed(piece)
+	_check_all_objectives_for_completion()
+
+
+func _on_tower_piece_spawned(piece: Piece) -> void:
+	var objective_count: int = _count_objectives_of_type(ObjectiveData.Type.STANDARD)
+	if objective_count < max_standard_objectives:
+		var objective: ObjectiveData = _pick_objective(ObjectiveData.Type.STANDARD)
+		_add_objective(objective, piece)
+
+
+func _on_tower_action_completed(action: Action) -> void:
+	for objective in _active_objectives:
+		objective.update_action_completed(action)
+	_check_all_objectives_for_completion()
+
+
+func _on_tower_piece_placement_failed(_piece: Piece) -> void:
+	_check_all_objectives_for_completion()
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>

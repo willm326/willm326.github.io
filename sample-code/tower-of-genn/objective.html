@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript">
+class_name Objective extends Node
+## Objective base class.
+##
+## All objectives should extend this class. Only functions that are
+## needed for your specific objective need to be overridden, the rest can be
+## left alone.
+##
+## Unchanging info and UI related information should be included in an
+## [ObjectiveData] resource. 
+
+## Stores text detailing user progress for the UI to display
+var current_progress: String:
+	set(new_progress):
+		current_progress = new_progress
+		data.progress = new_progress
+## Reference to the [Tower] in the current scene
+var tower: Tower = null
+## The [ObjectiveData] resource that contains this [Objective]
+var data: ObjectiveData
+## If this objective is complete or not
+var completed: bool = false
+
+
+## Updates the state of this objective when a piece is placed.
+## [param piece] is the piece that was just placed.
+func update_piece_placed(_piece: Piece) -> void:
+	pass
+
+
+## Updates the state of this objective when an action is completed.
+## [param action] is the action that was just completed.
+func update_action_completed(_action: Action) -> void:
+	pass
+
+
+## Called by [ObjectiveManager] to setup references
+## [param _piece] is for objectives that need an immediate reference to the active
+## piece.
+func setup(tower_ref: Tower, objective_data: ObjectiveData, _piece: Piece = null) -> void:
+	tower = tower_ref
+	data = objective_data
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>
