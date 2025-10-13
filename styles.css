@@ -43,7 +43,7 @@ header {
 .content {
   margin: 20px;
   margin-top: 0;
-  max-width: 1000px;
+  max-width: 1500px;
 }
 
 .main-nav {
@@ -88,7 +88,6 @@ header {
   flex-wrap: wrap;
   gap: 15px;
   justify-items: center;
-  justify-content: left;
 }
 
 .project {
@@ -118,4 +117,11 @@ header {
 
 .project:hover {
   background-color: #777;
+}
+
+/* Individual Project Page Style */
+
+.project-img {
+  width: 100%;
+  max-width: 800px;
 }
