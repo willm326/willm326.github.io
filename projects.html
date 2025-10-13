@@ -1,83 +1,94 @@
 <!DOCTYPE html>
 <html lang="en-US">
-  <nav class="main-nav">
-    <ul class="nav-list">
-      <li class="nav-element"><a href="index.html">About Me</a></li>
-      <li class="nav-element"><a href="projects.html">Projects</a></li>
-    </ul>
-  </nav>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <!--May remove if there is a better way to check device-->
-    <title>Will Myatt: Projects</title>
+    <title>Will Myatt - Software Developer Portfolio</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>Projects</h1>
+    <header>
+      <h1>Will Myatt - Software Developer</h1>
+      <nav class="main-nav">
+        <ul class="nav-list">
+          <li class="nav-element"><a href="index.html">Home</a></li>
+          <li class="nav-element"><a href="projects.html">Projects</a></li>
+        </ul>
+      </nav>
+    </header>
 
-    <div class="project-section">
-      <h2 class="section-header">Games</h2>
-      <div class="project">
-        <a class="project-title" href="projects/tower-of-genn.html">
-          Tower of Genn
-        </a>
-        <p class="role">Programming Lead</p>
-        <img src="images/tower-of-genn-icon.png" />
-        <p>
-          A tower building puzzle game created using Godot and gdscript in a
-          team of around 20 people from UC Irvine.
-        </p>
-      </div>
-      <div class="project">
-        <a class="project-title" href="projects/bubblebound.html">
-          BubbleBound
-        </a>
-        <p class="role">Programming Lead</p>
-        <img src="images/bubblebound-icon.png" />
-        <p>
-          A puzzle adventure game where players utilize different types of fish
-          to complete puzzles. Created using Godot and gdscript in a team of 14
-          people.
-        </p>
-      </div>
-      <div class="project">
-        <a class="project-title" href="projects/helping-biodiversity.html">
-          Helping Biodiversity in the Ocean
-        </a>
-        <p class="role">Game Programmer</p>
-        <img src="images/helping-biodiversity-icon.png" />
-        <p>
-          An educational visual novel designed to help teach people how their
-          decisions impact ocean life. Created in a team of 5 using Unity and
-          C#.
-        </p>
-      </div>
-    </div>
+    <div class="content">
+      <h2>Projects</h2>
 
-    <div class="project-section">
-      <h2 class="section-header">Other Projects</h2>
-      <div class="project">
-        <a class="project-title" href="projects/electronic-drum.html">
-          Children's Museum Electronic Drum
-        </a>
-        <img src="images/drum-icon.png" />
-        <p>
-          Designed an Electronic Drum using a Capacitive Sensor as an exhibit
-          for the Sacramento Children's Museum. Created in a team of 2
-        </p>
-      </div>
-      <div class="project">
-        <a class="project-title" href="projects/exam-study-tool.html">
-          Exam Study Tool
-        </a>
-        <img src="images/exam-study-icon.png" />
-        <p>
-          Designed a simple program in Python to motivate me to study textbook
-          practice problems by randomly selecting a problem to practice and
-          setting a time limit to complete it under.
-        </p>
-      </div>
+      <section class="project-section">
+        <h3 class="section-header">Games</h3>
+        <div class="project-grid">
+          <a href="projects/tower-of-genn.html">
+            <div class="project">
+              <h4 class="project-header">Tower of Genn</h4>
+              <p class="role">Programming Lead</p>
+              <img src="images/tower-of-genn-icon.png" />
+              <p>
+                A tower building puzzle game created using Godot and gdscript in
+                a team of around 20 people from UC Irvine.
+              </p>
+            </div>
+          </a>
+          <a href="projects/bubblebound.html">
+            <div class="project">
+              <h4 class="project-header">Bubblebound</h4>
+              <p class="role">Programming Lead</p>
+              <img src="images/bubblebound-icon.png" />
+              <p>
+                A puzzle adventure game where players utilize different types of
+                fish to complete puzzles. Created using Godot and gdscript in a
+                team of 14 people.
+              </p>
+            </div>
+          </a>
+          <a href="projects/helping-biodiversity.html">
+            <div class="project">
+              <h4 class="project-header">Helping Biodiversity in the Ocean</h4>
+              <p class="role">Game Programmer</p>
+              <img src="images/helping-biodiversity-icon.png" />
+              <p>
+                An educational visual novel designed to help teach people how
+                their decisions impact ocean life. Created in a team of 5 using
+                Unity and C#.
+              </p>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <section class="project-section">
+        <h3 class="section-header">Other Projects</h3>
+        <div class="project-grid">
+          <a href="projects/electronic-drum.html">
+            <div class="project">
+              <h4 class="project-header">Electronic Drum</h4>
+              <img src="images/drum-icon.png" />
+              <p>
+                Designed an Electronic Drum using a Capacitive Sensor as an
+                exhibit for the Sacramento Children's Museum. Created in a team
+                of 2
+              </p>
+            </div>
+          </a>
+          <a href="projects/exam-study-tool.html">
+            <div class="project">
+              <h4 class="project-header">Exam Study Tool</h4>
+              <img src="images/exam-study-icon.png" />
+              <p>
+                Designed a simple program in Python to motivate me to study
+                textbook practice problems by randomly selecting a problem to
+                practice and setting a time limit to complete it under.
+              </p>
+            </div>
+          </a>
+        </div>
+      </section>
     </div>
   </body>
 </html>
