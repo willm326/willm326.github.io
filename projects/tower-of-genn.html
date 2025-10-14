@@ -12,7 +12,7 @@
       <h1>Will Myatt - Software Developer</h1>
       <nav class="main-nav">
         <ul class="nav-list">
-          <li class="nav-element"><a href="../index.html">About Me</a></li>
+          <li class="nav-element"><a href="../index.html">Home</a></li>
           <li class="nav-element"><a href="../projects.html">Projects</a></li>
         </ul>
       </nav>
@@ -106,10 +106,35 @@
           </label>
         </div>
       </div>
-      <iframe
-        title="Code Sample"
-        src="../sample-code/tower-of-genn/objective.html"
-      ></iframe>
+      <div class="sample flex">
+        <iframe
+          title="Code Sample"
+          src="../sample-code/tower-of-genn/objective.html"
+        ></iframe>
+        <p class="tile objective.gd caption">
+          This is the script for the <strong>Objective</strong> class. This is a
+          base class that in game objectives extend. It has two functions that
+          can be overriden, both being called automatically by ObjectiveManager
+          when they receive signals from other game systems.
+        </p>
+        <p class="tile objective_data.gd caption" style="display: none">
+          This is the script for the <strong>Objective Data</strong> class. This
+          is a base resource class storing pieces of data that all instances of
+          the corresponding objective share. The <code>@export</code> keyword
+          allows the resource to be edited in the Godot editor to make it easy
+          for designers and programmers to edit objective values.
+        </p>
+        <p class="tile objective_manager.gd caption" style="display: none">
+          This is the script for the <strong>Objective Manager</strong> class.
+          This is the class that randomly selects objectives for the player to
+          complete throughout the game, and sends signals to other games systems
+          when they are completed to properly reward the player. The functions
+          at the bottom of the script starting with <code>_on</code> are signal
+          listener functions. They are called when other game systems signal
+          that specific events have occured, similar to listening for Events in
+          other programming languages.
+        </p>
+      </div>
     </div>
     <script src="\index.js"></script>
   </body>

@@ -196,15 +196,23 @@ header {
   background-color: #777;
 }
 
+/* Individual Project Page Style */
+
+.project-img {
+  width: 100%;
+  max-width: 800px;
+}
+
 iframe {
   width: 100%;
+  max-width: 1300px;
   height: 500px;
-  margin-top: 25px;
 }
 
 .button-group {
   display: flex;
   gap: 15px;
+  margin-top: 30px;
 }
 
 .button-group input:checked ~ .radio-button {
@@ -231,9 +239,16 @@ iframe {
   display: none;
 }
 
-/* Individual Project Page Style */
+.sample {
+  align-items: start;
+  align-content: start;
+  flex-wrap: wrap;
+  margin-top: 40px;
+}
 
-.project-img {
-  width: 100%;
-  max-width: 800px;
+.sample p {
+  flex-basis: 100px;
+  flex-grow: 1;
+  margin: 0;
+  font-size: large;
 }
