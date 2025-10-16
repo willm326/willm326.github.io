@@ -126,6 +126,9 @@ header {
   .skills {
     width: 100%;
   }
+  .flex {
+    flex-wrap: wrap;
+  }
 }
 
 .featured-header {
