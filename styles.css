@@ -84,19 +84,26 @@ header {
   gap: 20px;
 }
 
+.nav-element {
+  border-radius: 12px;
+  padding: 5px 10px;
+  background-color: #af9bee;
+  box-shadow: 10px 5px 7px #00000022;
+}
+
 .nav-element a:link {
-  color: black;
+  color: #222;
   text-decoration: none;
   font-size: larger;
   font-weight: bold;
 }
 
 .nav-element a:visited {
-  color: black;
+  color: #222;
 }
 
-.nav-element a:hover {
-  color: #777;
+.nav-element:hover {
+  background-color: #cabfed;
 }
 
 /* Home Page Style */
