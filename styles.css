@@ -1,3 +1,8 @@
+/*|| General Styles*/
+:root {
+  --lavender: #977de4; /*Allows this specific shade of lavender to be reused across the site for consistency*/
+}
+
 body {
   background-color: #222;
   margin: 0;
@@ -11,11 +16,12 @@ span {
   line-height: 26px;
 }
 
+h1,
 h2,
 h3,
 h4 {
   font-family: sans-serif;
-  color: #977de4;
+  color: var(--lavender);
 }
 
 h1 {
@@ -37,15 +43,17 @@ h3 {
 }
 
 a:link {
-  color: #83bcf4;
+  color: #83bcf4; /*Helps make links easier to see on the dark background*/
 }
 
 a:visited {
   color: #b47de4;
 }
 
+/*|| Sitewide */
+
 header {
-  background-color: #977de4;
+  background-color: var(--lavender);
   margin: 0;
   padding: 10px 20px;
 
@@ -54,18 +62,6 @@ header {
   align-items: center;
   gap: 20px;
   justify-content: space-between;
-}
-
-.content {
-  margin: 20px;
-  margin-top: 0;
-}
-
-.tile {
-  background-color: #343434;
-  border-radius: 10px;
-  padding: 15px 25px;
-  margin-top: 18px;
 }
 
 .main-nav {
@@ -87,7 +83,7 @@ header {
 .nav-element {
   border-radius: 12px;
   padding: 5px 10px;
-  background-color: #af9bee;
+  background-color: #af9bee; /* Give navigation links a lighter background color to help them stand out*/
   box-shadow: 10px 5px 7px #00000022;
 }
 
@@ -106,36 +102,39 @@ header {
   background-color: #cabfed;
 }
 
-/* Home Page Style */
+/* Used to wrap all site content that is not in the header or footer
+   Used for setting page margins without affecting the navigation bar */
+.content {
+  margin: 20px;
+  margin-top: 0;
+}
 
-.personal-info {
+/*|| Utilities (Classes that are applied accross multiple pages)*/
+
+/* Used to create uniform boxes to store content in */
+.tile {
+  background-color: #343434;
+  border-radius: 10px;
+  padding: 15px 25px;
+  margin-top: 18px;
+}
+
+/*|| Home Page Style */
+
+/* Used to style rows on the home page so they have the same display style and gaps */
+.home-row {
   display: flex;
   gap: 15px;
-  justify-content: left;
   align-items: stretch;
 }
 
-.featured-group {
-  display: flex;
-  gap: 15px;
-  align-items: stretch;
+.skills {
+  min-width: fit-content; /*Ensures the Skills section doesn't take up unneccesary space*/
 }
 
-@media screen and (width < 1000px) {
-  .featured-group {
-    flex-wrap: wrap;
-    gap: 0;
-  }
-  .personal-info {
-    flex-wrap: wrap;
-    gap: 0;
-  }
-  .skills {
-    width: 100%;
-  }
-  .flex {
-    flex-wrap: wrap;
-  }
+.skills ul {
+  padding-left: 20px;
+  padding-right: 15px;
 }
 
 .featured-header {
@@ -144,26 +143,17 @@ header {
   margin-bottom: 0;
 }
 
-.about-me {
-  flex: auto;
-}
-
-.skills {
-  /*fix this to not be hardcoded*/
-  min-width: 325px;
-}
-
-.skills ul {
-  padding-left: 20px;
+.featured img {
+  width: 100%;
 }
 
 .contact {
   margin-top: 32px;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
+  border: 4px solid var(--lavender);
   text-align: center;
-  border: 4px solid #977de4;
+
+  display: flex;
+  justify-content: center;
 }
 
 .contact h2 {
@@ -171,13 +161,14 @@ header {
 }
 
 .socials-list {
-  display: flex;
   margin-top: 30px;
   list-style: none;
+  padding: 0;
+
+  display: flex;
   justify-content: center;
   align-items: center;
   gap: 12px;
-  padding: 0;
 }
 
 .socials-list li {
@@ -188,27 +179,21 @@ header {
   height: 45px;
 }
 
-.featured {
-  max-width: 810px;
+/* Used to make mobile content appear in one column instead of rows*/
+@media screen and (width < 1000px) {
+  .home-row {
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .home-row p {
+    max-width: none;
+  }
+  .skills {
+    width: 100%;
+  }
 }
 
-.flex {
-  display: flex;
-  gap: 25px;
-  align-content: center;
-  align-items: start;
-}
-
-.featured img {
-  width: 100%;
-  max-width: 900px;
-}
-
-.featured p {
-  max-width: 300px;
-}
-
-/* Projects Page Style */
+/*|| Projects Page Style */
 
 .project-section {
   margin-bottom: 30px;
@@ -227,7 +212,7 @@ header {
   padding: 15px;
   border-radius: 10px;
   box-shadow: 10px 5px 7px #977de45e;
-  width: 275px;
+  width: 325px;
 }
 
 .project img {
@@ -250,7 +235,7 @@ header {
   background-color: #777;
 }
 
-/* Individual Project Page Style */
+/*|| Individual Project Page Style */
 
 .project-img {
   width: 100%;
@@ -294,10 +279,12 @@ iframe {
 }
 
 .sample {
-  align-items: start;
-  align-content: start;
-  flex-wrap: wrap;
   margin-top: 40px;
+
+  display: flex;
+  align-items: start;
+  gap: 25px;
+  flex-wrap: wrap;
 }
 
 .caption {
