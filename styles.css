@@ -1,33 +1,292 @@
+/*|| General Styles*/
+:root {
+  --lavender: #977de4; /*Allows this specific shade of lavender to be reused across the site for consistency*/
+  --button-shadow: #977de45e;
+  --tile-hover: #777; /*Buttons using the tile class should use this color for hover highlights*/
+}
+
 body {
-  background-color: lavender;
+  background-color: #222;
+  margin: 0;
+}
+
+p,
+li,
+span {
+  font-family: sans-serif;
+  color: #fafafa;
+  line-height: 26px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: sans-serif;
+  color: var(--lavender);
+}
+
+h1 {
+  margin: 0;
+  color: black;
+  font-family: sans-serif;
+}
+
+h2 {
+  font-size: xx-large;
+  margin-bottom: 18px;
+  margin-top: 25px;
+}
+
+h3 {
+  font-size: 160%;
+}
+
+a:link {
+  color: #83bcf4; /*Helps make links easier to see on the dark background*/
+}
+
+a:visited {
+  color: #b47de4;
+}
+
+/*|| Sitewide */
+
+header {
+  background-color: var(--lavender);
+  margin: 0;
+  padding: 10px 20px;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 20px;
+  justify-content: space-between;
 }
 
 .main-nav {
-  background-color: #d8a6e6;
+  margin: 0;
+  margin-left: 20px;
 }
 
 .nav-list {
   list-style: none;
   padding: 12px;
-  padding-left: 20px;
-
-  font-family: sans-serif;
+  margin: 0;
 
   display: flex;
   flex-direction: row;
-  align-items: start;
+  align-items: center;
   gap: 20px;
 }
 
+.nav-element {
+  border-radius: 12px;
+  padding: 5px 10px;
+  background-color: #af9bee; /* Give navigation links a lighter background color to help them stand out*/
+  box-shadow: 10px 5px 7px #00000022;
+}
+
 .nav-element a:link {
-  color: black;
+  color: #222;
   text-decoration: none;
+  font-size: larger;
+  font-weight: bold;
 }
 
 .nav-element a:visited {
-  color: black;
+  color: #222;
 }
 
-.nav-element a:hover {
-  color: #777;
+.nav-element:hover {
+  background-color: #cabfed;
+}
+
+/* Used to wrap all site content that is not in the header or footer
+   Used for setting page margins without affecting the navigation bar */
+.content {
+  margin: 20px;
+  margin-top: 0;
+}
+
+/*|| Utilities (Classes that are applied accross multiple pages)*/
+
+/* Used to create uniform boxes to store content in */
+.tile {
+  background-color: #343434;
+  border-radius: 10px;
+  padding: 15px 25px;
+  margin-top: 18px;
+}
+
+/* Used to make headers in tiles account for tile padding*/
+.tile h3 {
+  margin-bottom: 18px;
+  margin-top: 12px;
+}
+
+/*|| Home Page Style */
+
+/* Used to style rows on the home page so they have the same display style and gaps */
+.home-row {
+  display: flex;
+  gap: 15px;
+  align-items: stretch;
+}
+
+.skills {
+  min-width: fit-content; /*Ensures the Skills section doesn't take up unneccesary space*/
+}
+
+.skills ul {
+  padding-left: 20px;
+  padding-right: 15px;
+}
+
+.featured-header {
+  margin-left: 20px;
+  margin-top: 32px;
+  margin-bottom: 0;
+}
+
+.featured img {
+  width: 100%;
+}
+
+.contact {
+  margin-top: 32px;
+  border: 4px solid var(--lavender);
+  text-align: center;
+
+  display: flex;
+  justify-content: center;
+}
+
+.contact h2 {
+  margin-top: 12px;
+}
+
+.socials-list {
+  margin-top: 30px;
+  list-style: none;
+  padding: 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.socials-list li {
+  margin: 0;
+}
+
+.social-img {
+  height: 45px;
+}
+
+/* Used to make mobile content appear in one column instead of rows*/
+@media screen and (width < 1000px) {
+  .home-row {
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .home-row p {
+    max-width: none;
+  }
+  .skills {
+    width: 100%;
+  }
+}
+
+/*|| Projects Page Style */
+
+.project-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 25px;
+  justify-items: center;
+}
+
+.project {
+  text-wrap: wrap;
+  padding-left: 20px;
+  padding-right: 20px;
+  margin-top: 0;
+  box-shadow: 10px 5px 7px var(--button-shadow);
+  width: 350px;
+}
+
+.project img {
+  width: 100%;
+}
+
+.role {
+  font-style: italic;
+}
+
+.project:link {
+  text-decoration: none;
+}
+
+.project:hover {
+  background-color: var(--tile-hover);
+}
+
+/*|| Individual Project Page Style */
+
+.project-img {
+  width: 100%;
+  max-width: 800px;
+}
+
+iframe {
+  width: 100%;
+  max-width: 1300px;
+  height: 500px;
+}
+
+.button-group {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.button-group input:checked ~ .radio-button {
+  background-color: #2c2235;
+  box-shadow: 2px 2px 0px var(--button-shadow);
+}
+
+.radio-button {
+  color: whitesmoke;
+  font-family: monospace;
+  cursor: pointer;
+
+  box-shadow: 5px 5px 7px var(--button-shadow);
+}
+
+.radio-button:hover {
+  background-color: var(--tile-hover);
+}
+
+/* Used to remove the default radio button from view,
+since they are replaced by tile buttons using labels. */
+.script-select {
+  display: none;
+}
+
+.sample {
+  margin-top: 40px;
+
+  display: flex;
+  align-items: start;
+  gap: 25px;
+  flex-wrap: wrap;
+}
+
+.caption {
+  flex-basis: 100px;
+  flex-grow: 1;
+  margin: 0;
+  font-size: large;
 }

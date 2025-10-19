@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript" style="font-size: small;">
+extends StaticBody2D
+## This class is for the ice_wall scene, and implements walls that grow
+## when the player interacts with them
+## Author(s): Will
+
+@onready var _collision_shape_2d: CollisionShape2D = $CollisionShape2D
+@onready var _sprite_2d: Sprite2D = $Sprite2D
+@onready var interactable: Interactable = $Interactable
+@onready var _left_end: Node2D = $"Left Collision"
+@onready var _right_end: Node2D = $"Right Collision"
+@onready var _audio_stream_player_2d: AudioStreamPlayer2D = $AudioStreamPlayer2D
+
+##Speed 100 px of the ice grows in seconds
+const GROW_SPEED: float = 0.25
+
+##The size to grow the wall to in art pixels (will be scaled by 3)
+@export_range(100, 1000) var grow_size: int = 300
+
+##Stores the collision scale for restoring the collider to its original size
+var _rectangle_shape: RectangleShape2D
+
+##Stores the sprite region for restoring the sprite to its original shape
+var _sprite_rect: Rect2
+
+##Stores the duration the tween should take to finish animating
+var _duration: float
+
+##Stores the position the ends should return to
+var _end_position: Vector2
+
+func _ready() -> void:
+	_rectangle_shape = _collision_shape_2d.shape
+	_sprite_rect = _sprite_2d.region_rect
+	_duration = (grow_size/100.0) * GROW_SPEED
+	_end_position = _right_end.position
+
+func _on_engage(_active_fish: PuzzleFish, _clicked_collision_shape_index: int) -> void:
+	_audio_stream_player_2d.play()
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(_rectangle_shape, "size", Vector2(grow_size * 3, _sprite_rect.size.y * 3),_duration)
+	tween.tween_property(_sprite_2d, "region_rect", Rect2(0,0, grow_size, _sprite_rect.size.y), _duration)
+	tween.tween_property(_left_end, "position", Vector2(grow_size * -1.5 - _end_position.x * 0.5 + 1, _end_position.y), _duration)
+	tween.tween_property(_right_end, "position", Vector2(grow_size * 1.5 + _end_position.x * 0.5 - 1, _end_position.y), _duration)
+
+func _on_disengage() -> void:
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(_rectangle_shape, "size", _sprite_rect.size * 3, _duration)
+	tween.tween_property(_sprite_2d, "region_rect", _sprite_rect, _duration)
+	tween.tween_property(_left_end, "position", Vector2(-1 * _end_position.x, _end_position.y), _duration)
+	tween.tween_property(_right_end, "position", _end_position, _duration)
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>

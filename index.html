@@ -1,31 +1,137 @@
 <!DOCTYPE html>
 <html lang="en-US">
-  <nav class="main-nav">
-    <ul class="nav-list">
-      <li class="nav-element"><a href="index.html">About Me</a></li>
-      <li class="nav-element"><a href="projects.html">Projects</a></li>
-      <li class="nav-element"><a href="skills.html">Skills</a></li>
-    </ul>
-  </nav>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <!--May remove if there is a better way to check device-->
-    <title>Will Myatt: Software Developer Portfolio</title>
+    <title>Will Myatt - Software Developer Portfolio</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>Will Myatt</h1>
-    <p class="about-me">
-      An up and coming software developer currently pursuing a BS in Computer
-      Science at UC Irvine. Enjoys solving problems and learning new things. Is
-      adaptable and has made projects in a variety of languges, including C# and
-      python. Experience with the Godot and Unity Game Engines.
-    </p>
-    <p class="about-me">
-      Outside of coding and school, I enjoy reading, playing the piano, and
-      playing video games. My favorite video game genres include turned based
-      RPGS and exploration based games.
-    </p>
+    <header>
+      <h1>Will Myatt - Software Developer</h1>
+      <nav class="main-nav">
+        <ul class="nav-list">
+          <li class="nav-element"><a href="index.html">Home</a></li>
+          <li class="nav-element"><a href="projects.html">Projects</a></li>
+        </ul>
+      </nav>
+    </header>
+    <div class="content">
+      <h2 class="featured-header">Who Am I?</h2>
+      <div class="home-row">
+        <section class="about-me tile">
+          <h3>A Short Introduction</h3>
+          <div>
+            <p>
+              Hello! I'm Will, a computer science student and aspiring software
+              developer. I enjoy solving problems and learning new things. I'm
+              adaptable and have made projects in a variety of languages,
+              including object-oriented languages such as C#. I also have
+              experience with the Godot and Unity Game Engines.
+            </p>
+            <p>
+              Currently, I'm pursuing a BS in Computer Science at UC Irvine,
+              with estimated graduation in Spring 2027. Some notable topics I
+              have studied include Search and Sort Algorithms, Data Structures,
+              and Object Oriented Programming in C++.
+            </p>
+            <p>
+              In my free time, I like to spend time with friends and play
+              videogames. I enjoy a wide variety of games. My favorites tend to
+              be games that make me think or give me fun new experiences with my
+              friends. Additionally, I enjoy making games, and am currently
+              working on
+              <em>Tower of Genn</em> (more details below).
+            </p>
+          </div>
+        </section>
+        <section class="skills tile">
+          <h3>Skills</h3>
+          <ul>
+            <li>Object Oriented Programming</li>
+            <li>Had multiple leadership roles</li>
+            <li>Worked in Teams of Varying Sizes</li>
+            <li>Git and Github</li>
+            <li>Code and Pull Request Review</li>
+            <li>Unity and Godot Game Engines</li>
+          </ul>
+        </section>
+      </div>
+      <h2 class="featured-header">Featured Projects</h2>
+      <div class="home-row">
+        <section class="featured tile">
+          <h3>Tower of Genn</h3>
+          <img src="images/tower-of-genn-2.png" />
+          <div>
+            <p>
+              A tower building puzzle game created using Godot and gdscript in a
+              team of around 20 people from UC Irvine. I am the programming
+              lead, responsible for organizing and running programmer meetings,
+              code review, and much more.
+              <a href="projects/tower-of-genn.html">More details →</a>
+            </p>
+            <p>
+              <a href="projects.html">View All Projects →</a>
+            </p>
+          </div>
+        </section>
+        <section class="featured tile">
+          <h3>Bubblebound</h3>
+          <img src="images/bubblebound-2.png" />
+          <div>
+            <p>
+              A puzzle based adventure game where you utilize different types of
+              fish to solve puzzles. It was created using Godot and gdscript in
+              a team of around 14 people from UC Irvine. I was the programming
+              lead, responsible for managing the Github, code review, and much
+              more.
+              <a href="projects/bubblebound.html">More details →</a>
+            </p>
+            <p>
+              <a href="projects.html">View All Projects →</a>
+            </p>
+          </div>
+        </section>
+      </div>
+
+      <section class="contact tile" id="contact">
+        <div>
+          <h2>Contact Me</h2>
+          <span
+            ><a href="mailto:willm326@gmail.com">willm326@gmail.com</a></span
+          >
+          <ul class="socials-list">
+            <li>
+              <a href="https://github.com/willm326" target="_blank">
+                <img
+                  class="social-img"
+                  src="images/github-mark.png"
+                  alt="Github Profile"
+                />
+              </a>
+            </li>
+            <li>
+              <a href="https://www.linkedin.com/in/willmyatt/" target="_blank">
+                <img
+                  class="social-img"
+                  src="images/linkedin.png"
+                  alt="LinkedIn Profile"
+                />
+              </a>
+            </li>
+            <li>
+              <a href="https://willm326.itch.io/" target="_blank">
+                <img
+                  class="social-img"
+                  src="images/itch.png"
+                  alt="Itch Profile"
+                />
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
   </body>
 </html>
