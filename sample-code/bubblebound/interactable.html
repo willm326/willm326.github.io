@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript" style="font-size: small;">
+@tool
+@icon("res://art/icons/interactable.svg")
+class_name Interactable
+extends Area2D
+## This class adds sensors and signals for an object to detect the player and 
+## their mouse clicks.
+##
+## This script uses its [Area2D] to detect the player, and should have a second
+## [Area2D] attached as a child for detecting the mouse pointer and its clicks.
+## View the Setup below the script description for more details.
+##
+## Author(s): Will
+##
+## Edited by: Jeremy
+## added func disengage_fish() :
+## added code for movable objects
+## added int/bool _mouse_inside
+
+# Setup:
+#
+# 1) Add a CollisionShape2D as a child to Interactable, this collision is for
+# detecting the player, if the player is in the shape they can interact with
+# the object.
+#
+# 2) Add a Area2D as a child to Interactable, this is an additional node that
+# is used to detect the mouse. For each part of the object that you want the
+# player to be able to attach a fish to, add a CollisionShape2D. This shape is the
+# region that the player's mouse can be detected for that particular attach point.
+# The center of the collision shape is the position the fish will move to when it
+# interacts with the object at that particular attach point.
+# If you want to use an alternative position, add a Node2D as a child to the corresponding
+# collision shape named "Attach" and place it at the position you want the fish to
+# move to
+#
+# You can add as many CollisionShapes as you want, but DO NOT OVERLAP THEM!!!
+# The script has no way of detecting an overlap so it may cause confusing errors
+#
+# 3) Use the node menu on the right to connect signals from this script to your
+# object. The first 2 signals are for interactions with the player, and the last
+# 4 are for graphics changes and animations.
+
+
+## Emitted when the player removes a fish from an object and its effect should end.
+signal disengage()
+
+## Emitted when the player interacts with an object. [param active_fish] is the fish that
+## is interacting with the object, and [param clicked_collision_shape_index] is the child
+## index of the collision shape that was clicked, where 0 is the first child (top
+## of the scene tree).
+signal engage(active_fish: PuzzleFish, clicked_collision_shape_index: int)
+
+## Emitted when the mouse hovers one of the collision shapes. [param collision_index]
+## is the child index of the collision shape that was clicked, where 0 is the first
+## child (top of the scene tree).
+signal mouse_hover(collision_index: int)
+
+## Emitted when the mouse is no longer hovering any of the mouse detection collision shapes.
+signal mouse_left
+
+## Emitted when the player enters this object's [CollisionShape2D].
+signal player_in_range
+
+## Emitted when the player leaves this object's [CollisionShape2D].
+signal player_left_range
+
+##Duration the fish should take to look towards an object when interacting
+const ROTATE_DURATION: float = 0.2
+
+const ATTACH_SOUND: AudioStream = preload("res://sounds/attach_fish.wav")
+const FAIL_SOUND: AudioStream = preload("res://sounds/temp_cant_attach.wav")
+
+##List of fish the player can use to interact with this object
+@export var _allowed_fish: Array[PuzzleFish.FishType]
+
+##Location the fish should turn to after interacting with an object
+@export var _look_location: Node2D
+
+##Set to true if the object will move
+@export var _moving: bool = false
+
+##Set to true if the object should immediateley activate upon right click
+@export var _instant: bool = false
+
+##How long it should take for the fish to reach the object
+@export var _fish_duration: float = 0.5
+
+##For playing attach sounds
+@onready var _audio_stream_player_2d: AudioStreamPlayer2D = $AudioStreamPlayer2D
+
+var _player_within_area: bool = false
+
+## True if a fish is currently interacting with this object.
+var _fish_engaged: bool = false
+
+## True if the fish is on its way to the object
+var _fish_moving: bool = false
+
+## Stores the Area2D child used for mouse detection.
+var _mouse_areas: Area2D
+
+## Stores positions the PuzzleFish should move to when attached.
+var _attach_positions: Array[Node2D]
+
+## Stores the PuzzleFish interacting with this object.
+var _active_fish: PuzzleFish
+
+## Stores the fish container to find the active fish.
+var _fish_container: FishContainer
+
+## Keep track of fish positions.
+var _fish_tween : Tween
+var _active_index : int
+
+## If the player can interact with the object
+var _can_interact: bool = true
+
+## If the mouse is in range, 0 = false, every other number represents the index
+## of the highlighted shape + 1
+var _mouse_inside: int = false
+
+## Returns true if a fish is currently engaged with the object, false otherwise
+func is_fish_engaged() -> bool:
+	return _fish_engaged
+	
+## Used for setting the player to be able to interact and not interact with an object
+func set_interactions_enabled(value: bool) -> void:
+	_can_interact = value
+	
+##returns true if the player can interact with the object currently
+func are_interactions_enabled() -> bool:
+	return _can_interact
+
+## Returns attach position from index
+func get_active_attach_position() -> Vector2:
+	return _attach_positions[_active_index].global_position
+
+## Returns attach position at given mouse shape index
+func get_attach_position_from_index(shape_idx: int) -> Vector2:
+	return _attach_positions[shape_idx].global_position
+
+func disengage_fish() -> void:
+	if(_fish_engaged): #To protect against this being called when the fish isn't engaged
+		# Cyrus: moved disengage signal emit here so that when disengage fish is called without
+		# user interaction, the signal is still emitted
+		disengage.emit()
+		_active_fish.go_back_to_player()
+		_fish_container.add_fish(_active_fish)
+		_fish_engaged = false
+		set_process(false)
+
+# Called when the node enters the scene tree for the first time.
+func _ready() -> void:
+	if(_look_location == null):
+		_look_location = self
+	self.set_process(false) #For objects that aren't moving, no need to update position
+	if not Engine.is_editor_hint(): # Prevents this code from running in the engine
+		if(not body_entered.is_connected(_on_body_entered)):
+			body_entered.connect(_on_body_entered)
+		if(not body_exited.is_connected(_on_body_exited)):
+			body_exited.connect(_on_body_exited)
+		_mouse_areas = _find_child_area()
+		input_pickable = false # Ensures this object won't interfere with the mouse detection
+
+## Make the object mover follow the object
+func _process(delta: float) -> void: 
+	_fish_tween = _active_fish.go_to_position(_attach_positions[_active_index].global_position, delta)
+
+# Displays a warning in the editor when there isn't another Area2D child.
+func _get_configuration_warnings() -> PackedStringArray:	
+	for child: Node2D in get_children():
+		if child is Area2D:
+			return PackedStringArray()
+	
+	return PackedStringArray(["There must be another Area2D as a \
+			child of this object used for detecting the mouse and \
+			determining fish attachment positions"])
+
+func _engage_fish(instant: bool, shape_idx: int) -> void:
+	_active_fish = _fish_container.get_current_fish()
+	if _active_fish != null and _allowed_fish.has(_active_fish.get_type()):
+		_fish_container.remove_fish()
+		_fish_tween = _active_fish.go_to_position(_attach_positions[shape_idx].global_position, _fish_duration)
+		_active_index = shape_idx
+		_fish_engaged = true
+		_audio_stream_player_2d.set_stream(ATTACH_SOUND)
+		_audio_stream_player_2d.play()
+		if(instant):
+			engage.emit(_active_fish, shape_idx)
+			if(_moving):
+				set_process(true)
+			await _fish_tween.finished
+			_active_fish.rotate_towards_point(_look_location.global_position, ROTATE_DURATION)
+		else:
+			_fish_moving = true
+			await _fish_tween.finished
+			_fish_moving = false
+			_fish_tween = _active_fish.rotate_towards_point(_look_location.global_position, ROTATE_DURATION)
+			await _fish_tween.finished
+			engage.emit(_active_fish, shape_idx)
+			if(_moving):
+				set_process(true)
+	else:
+		#_audio_stream_player_2d.set_stream(FAIL_SOUND)
+		#_audio_stream_player_2d.play()
+		pass #uncomment the above 2 lines to play a sound when interacting fails
+
+## Locates the first Area2D child and connects to signals for reading mouse interactions
+func _find_child_area() -> Area2D:
+	for child: Node2D in get_children():
+		if child is Area2D:
+			child.input_pickable = true
+			child.mouse_shape_entered.connect(_on_mouse_shape_entered)
+			child.mouse_exited.connect(_on_mouse_exited)
+			child.input_event.connect(_on_mouse_click)
+			for node: Node2D in child.get_children():
+				var attach_node = node.get_node_or_null("Attach")
+				_attach_positions.append(attach_node if attach_node != null else node)
+			return child
+	# Will only reach here if no child Area2D is found
+	push_warning("No Area2D attached for mouse detection")
+	return null
+
+## Checks for mouse clicks, updates information in FishContainer, sets the puzzle
+## fish to follow/unfollow, and then emits the engage or disengage signal
+func _on_mouse_click(_viewport: Node, event: InputEvent, shape_idx: int) -> void:
+	if _can_interact and event.is_action_pressed("interact") and _player_within_area:
+		if _fish_engaged:
+			if(not _fish_moving):
+				disengage_fish()
+				_fish_tween.stop()
+		else:
+			_engage_fish(_instant, shape_idx)
+
+func _on_body_entered(body: Node2D) -> void:
+	if body.is_in_group("player"):
+		_fish_container = body.get_node("FishContainer")
+		player_in_range.emit()
+		_player_within_area = true
+		if _mouse_inside and _can_interact:
+			mouse_hover.emit(_mouse_inside - 1)
+
+func _on_body_exited(body: Node2D) -> void:
+	if body.is_in_group("player"):
+		player_left_range.emit()
+		mouse_left.emit()
+		_player_within_area = false
+
+func _on_mouse_shape_entered(shape_idx: int) -> void:
+	_mouse_inside = shape_idx + 1
+	if _player_within_area and _can_interact:
+		mouse_hover.emit(shape_idx)
+		
+
+func _on_mouse_exited() -> void:
+	_mouse_inside = false #Stored as 0
+	mouse_left.emit()
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>

@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-arduino" style="font-size: small;">
+#pragma region libraries {
+#include &lt;SoftwareSerial.h&gt;
+#include &lt;CapacitiveSensor.h&gt;
+#include &lt;Adafruit_NeoPixel.h&gt;
+#pragma endregion}
+
+#pragma region control variables {
+//These variables are changed during run time
+int serial = 1; //used to swap between the 2 serials 
+static int8_t Send_buf[8] = {0} ;//The MP3 player undestands orders in a 8 int string, an int8_t is a type of integer that always is 8 bits
+bool playing = false;
+bool rainbowAllowed = false; //used to quit the rainbow loop when the drum is hit
+bool canSense = false;
+bool doRecalibrate = true;
+bool canPlay = true; //when false activating sensor will not light up or play sound
+long drumType = 0;
+long millisAfterHit = 0;
+double divider = 255; //used to divide numbers and get a decimal result
+struct color {byte r = 255; byte g = 255; byte b = 255; }; //structs are user-defined data types that contains fields of differing or the same type, similar to classes
+struct colorFloat {double r = 0; double g = 0; double b = 0; };
+colorFloat fadeColor;
+struct drum {color light; int sound = 0X1E01;
+drum(byte r, byte g, byte b, int _sound) //this is a constructor, which is something that can be used to create an instance of a struct later in the code
+{
+  light.r = r;
+  light.g = g;
+  light.b = b;
+  sound = _sound;
+}
+};
+#pragma endregion}
+
+#pragma region editable variables {
+//change these variables to change how the drum works
+int exceed = 200;  
+//The value the sensor must exceed to activate the lights and sound. When plugged into a computer that is plugged into the wall, 100 seems to work fine.
+//If the drum is too sensitive raise exceed, if the drum isn't responding to every hit lower exceed
+int exceedHigh = 700; //A value where the arduino assumes the sensor is messed up where it recalibrates
+byte brightness = 255; //from 0 to 255, this determines the overall brightness of the lights
+drum preset[] = //an array of drums (the struct type), each on uses the constructor to store the light color and location of the sound (0X(folder)(sound))
+{
+  drum(255, 0, 0, 0X0101), //red
+  drum(0, 255, 0, 0X0102), //green
+  drum(0, 0, 255, 0X0106), //blue
+  drum(255, 200, 0, 0X0107), //yellow
+  drum(255, 0, 255, 0X0109), //purple
+  drum(0, 255, 50, 0X0202), //turquoise
+  drum(255, 60, 0, 0X0203), //orange
+  drum(60, 0, 255, 0X0204), //indigo
+  drum(255, 60, 60, 0X0205), //salmon
+  drum(255, 120, 30, 0X0206), //brown
+};
+#pragma endregion }
+
+#pragma region constants {
+//personal constants - numbers should change to fit your project
+#define ARDUINO_RX 3//should connect to TX of the Serial MP3 Player module 
+#define ARDUINO_TX 2//connect to RX of the module 
+#define ARDUINOO_RX 6//should connect to TX of the Serial MP3 Player module 
+#define ARDUINOO_TX 5//connect to RX of the module 
+#define PERSONAL_VOLUME = 14; //xx in hexidecimal
+#define PERSONAL_TRACK = 01; //xx in hexidecimal
+#define NEO_PIN 8;
+#define N_LEDS 20;
+
+//Serial MP3 Player Commands - these numbers in hexadecimal are commands for the MP3 player, they should not be changed
+#define NEXT_SONG 0X01
+#define PREV_SONG 0X02
+#define CMD_PLAY_W_INDEX 0X03 //DATA IS REQUIRED (number of song) 
+#define VOLUME_UP_ONE 0X04
+#define VOLUME_DOWN_ONE 0X05
+#define CMD_SET_VOLUME 0X06//DATA IS REQUIRED (number of volume from 0 up to 30(0x1E)) 
+#define SET_DAC 0X17
+#define CMD_PLAY_WITHVOLUME 0X22 //data is needed  0x7E 06 22 00 xx yy EF;(xx volume)(yy number of song) 
+#define CMD_SEL_DEV 0X09 //SELECT STORAGE DEVICE, DATA IS REQUIRED 
+#define DEV_TF 0X02 //HELLO,IM THE DATA REQUIRED 
+#define SLEEP_MODE_START 0X0A
+#define SLEEP_MODE_WAKEUP 0X0B
+#define CMD_RESET 0X0C//CHIP RESET 
+#define CMD_PLAY 0X0D //RESUME PLAYBACK 
+#define CMD_PAUSE 0X0E //PLAYBACK IS PAUSED 
+#define CMD_PLAY_WITHFOLDER 0X0F//DATA IS NEEDED, 0x7E 06 0F 00 01 02 EF;(play the song with the directory \01\002xxxxxx.mp3 
+#define STOP_PLAY 0X16
+#define PLAY_FOLDER 0X17// data is needed 0x7E 06 17 00 01 XX EF;(play the 01 folder)(value xx we dont care) 
+#define SET_CYCLEPLAY 0X19//data is needed 00 start; 01 close 
+#define SET_DAC 0X17//data is needed 00 start DAC OUTPUT;01 DAC no output 
+#pragma endregion}
+
+#pragma region instances {
+CapacitiveSensor cs = CapacitiveSensor(10, 12);
+SoftwareSerial audioSerial(3, 2);//init the serial protocol, tell to myserial wich pins are TX and RX
+SoftwareSerial audioSerial2 (6, 5);//init the serial protocol, tell to myserial wich pins are TX and RX
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(42, 8, NEO_GRB + NEO_KHZ800); //42 is number of LEDs and 8 is pin number
+#pragma endregion}
+
+void setup()
+{
+  randomSeed(analogRead(2)); 
+  //random numbers in Arduino are based on a seed. This seed is the same every time and therefore results in a string of random numbers that is the same every time
+  //randomseed() sets the seed. In this case it is based on the state of analog pin 2, which has no connections and should variate enough for a different seed each time
+  
+  fadeColor.r = preset[drumType].light.r/divider;
+  fadeColor.g = preset[drumType].light.g/divider;
+  fadeColor.b = preset[drumType].light.b/divider;
+  
+  strip.begin();
+  strip.show();
+  strip.setBrightness(brightness);
+  strip.show();
+  
+  millisAfterHit = 30000;
+  
+  cs.set_CS_AutocaL_Millis(0xFFFFFFFF); //Sets the sensor to calibrate the sensor every x miliseconds. To turn off autocalibrate set value to something very high, such as 0xFFFFFFFF
+  cs.reset_CS_AutoCal(); //Forcefully autocalibrates the sensor, seems to be more reliable than autocalibrate if used consistently
+  
+  Serial.begin(9600);//Start our Serial coms for our serial monitor!
+  Serial.println(fadeColor.r);
+  Serial.println(preset[drumType].light.g);
+  Serial.println(fadeColor.g);
+  Serial.println(fadeColor.b);
+  audioSerial.begin(9600);
+  audioSerial2.begin(9600);
+  
+  delay(500);//Wait chip initialization is complete
+  sendCommand(CMD_SEL_DEV, DEV_TF);//select the TF card
+  sendCommand(CMD_SEL_DEV, DEV_TF);//select the TF card
+  
+  delay(200);//wait for 200ms
+  sendCommand(CMD_SET_VOLUME, 0X1E); //Volume is from 0-30 in hexadecimal
+  sendCommand(CMD_SET_VOLUME, 0X1E); //Volume is from 0-30 in hexadecimal
+}
+
+void sendCommand(int8_t command, int16_t dat)
+{
+  delay(20);
+  Send_buf[0] = 0x7e; //starting byte
+  Send_buf[1] = 0xff; //version
+  Send_buf[2] = 0x06; //the number of bytes of the command without starting byte and ending byte
+  Send_buf[3] = command; //
+  Send_buf[4] = 0x00;//0x00 = no feedback, 0x01 = feedback
+  Send_buf[5] = (int8_t)(dat &gt;&gt; 8);//datah
+  Send_buf[6] = (int8_t)(dat); //datal
+  Send_buf[7] = 0xef; //ending byte
+  
+  if (serial == 1)
+  {
+    for (uint8_t i = 0; i &lt; 8; i++) //
+    {
+      audioSerial.write(Send_buf[i]) ;
+    }
+    serial = 2; 
+  }
+  else if (serial == 2)
+  {
+    for (uint8_t i = 0; i &lt; 8; i++) //
+    {
+      audioSerial2.write(Send_buf[i]) ;
+    }
+    serial = 1; 
+  }
+}
+
+void activate()
+{
+  for(int i = 0; i &lt; 42; i++)
+  {
+    strip.setPixelColor(i, preset[drumType].light.r, preset[drumType].light.g, preset[drumType].light.b, 0);  
+  } 
+  strip.show();
+  
+  millisAfterHit = 0;
+  
+  if(rainbowAllowed)
+  {
+    while(Serial.available() &gt; 0)
+    {
+      int reader = Serial.read();
+    }
+  }
+  rainbowAllowed = false;
+  
+  sendCommand(CMD_PLAY_WITHFOLDER, preset[drumType].sound);
+}
+
+void buttonCheck()
+{
+   if(Serial.available() &gt; 0)
+  {
+    int value = Serial.read();
+    if(value == 1)
+    {
+      if (drumType &lt; 9)
+      {
+        drumType++; 
+        fadeColor.r = preset[drumType].light.r/divider;
+        fadeColor.g = preset[drumType].light.g/divider;
+        fadeColor.b = preset[drumType].light.b/divider;
+      }
+      else 
+      {
+        drumType = 0;
+        fadeColor.r = preset[drumType].light.r/divider;
+        fadeColor.g = preset[drumType].light.g/divider;
+        fadeColor.b = preset[drumType].light.b/divider;
+      }
+      activate();
+    }
+  }
+}
+
+void sensing()
+{
+    long sensorValue = cs.capacitiveSensor(25);
+    //Serial.println(sensorValue); 
+    if (sensorValue &gt;= 1 && sensorValue &lt; exceed)
+    {
+      canSense = true;
+    }
+    else if (sensorValue == 0)
+    {
+      canSense = false;
+      doRecalibrate = true;
+    }
+    else if (!canSense && sensorValue &gt; exceedHigh && doRecalibrate)
+    {
+      cs.reset_CS_AutoCal();
+      doRecalibrate = false;
+    }
+    if(sensorValue &gt; exceed && canSense)
+    {
+        if (!playing)
+        {
+         activate();
+         playing = true;
+         canSense = false;
+        }
+    }
+    else if (sensorValue == -2) //error with sensor value
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 255,255,255,0);  
+      } 
+      strip.show();
+    }
+    else
+    {
+      playing = false;
+    }
+    delay(30);
+}
+
+void spin(bool clockwise, byte times)
+{
+  if (clockwise)
+  {
+    for(int y = 0; y &lt; times; y++)
+    {
+      for(int k = 41; k &gt; 0 && rainbowAllowed; k--)
+      {
+        int j = 255;
+        int x = 0;
+        for(int i = k + 7; i &gt; k; i--)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, j, 0, 0, 0);  
+        }
+        for(int i = k + 14; i &gt; k + 7; i--)
+        { 
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, j, (j/4.25f), 0, 0);  
+        }
+        for(int i = k + 21; i &gt; k + 14; i--)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, j, j, 0, 0);  
+        }
+        for(int i = k + 28; i &gt; k + 21; i--)
+        { 
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, 0, j, 0, 0);  
+        }
+        for(int i = k + 35; i &gt; k + 28; i--)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, 0, 0, j, 0);  
+        }
+        for(int i = k + 41; i &gt; k + 35; i--)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, j, 0, j, 0);  
+        }
+          strip.show();
+          sensing();
+          buttonCheck();
+      }
+    }
+  }
+  else
+  {
+    for(int y = 0; y &lt; times; y++)
+    {
+      for(int k = 0; k &lt; 42 && rainbowAllowed; k++)
+      {
+        int j = 255;
+        int x = 0;
+        for(int i = k; i &lt; k + 7; i++)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, j, 0, 0, 0);  
+        }
+        for(int i = k + 7; i &lt; k + 14; i++)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, j, (j/4.25f), 0, 0);  
+        }
+        for(int i = k + 14; i &lt; k + 21; i++)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, j, j, 0, 0);  
+        }
+        for(int i = k + 21; i &lt; k + 28; i++)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, 0, j, 0, 0);  
+        }
+        for(int i = k + 28; i &lt; k + 35; i++)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, 0, 0, j, 0);  
+        }
+        for(int i = k + 35; i &lt; k + 42; i++)
+        {
+          x = i;
+          if (x &gt; 41) {x = x - 42;}
+          strip.setPixelColor(x, j, 0, j, 0);  
+        }
+          strip.show();
+          sensing();
+          buttonCheck();
+      }
+    }
+  }
+}
+
+void flash(byte times, int delayTime = 0)
+{
+  for(int k = 1; k &lt; (times * 2) + 2 && rainbowAllowed; k++)
+    {
+      int j = ((k/2.0f) - (k/2) == 0) ? 0 : 255;
+      for(int i = 0; i &lt; 7; i++)
+      {
+        strip.setPixelColor(i, j, 0, 0, 0);  
+      }
+      for(int i = 7; i &lt; 14; i++)
+      {
+        strip.setPixelColor(i, j, (j/4.25f), 0, 0);  
+      }
+      for(int i = 14; i &lt; 21; i++)
+      {
+        strip.setPixelColor(i, j, j, 0, 0);  
+      }
+      for(int i = 21; i &lt; 28; i++)
+      {
+        strip.setPixelColor(i, 0, j, 0, 0);  
+      }
+      for(int i = 28; i &lt; 35; i++)
+      {
+        strip.setPixelColor(i, 0, 0, j, 0);  
+      }
+      for(int i = 35; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, j, 0, j, 0);  
+      }
+        strip.show();
+        sensing();
+        buttonCheck();
+        delay(delayTime);
+    }
+  delay(100);
+}
+
+void fadeIn()
+{
+  for(int j = 0; j &lt; 256 && rainbowAllowed; j = j + 3)
+    {
+      for(int i = 0; i &lt; 7; i++)
+      {
+        strip.setPixelColor(i, j, 0, 0, 0);  
+      }
+      for(int i = 7; i &lt; 14; i++)
+      {
+        strip.setPixelColor(i, j, (j/4.25f), 0, 0);  
+      }
+      for(int i = 14; i &lt; 21; i++)
+      {
+        strip.setPixelColor(i, j, j, 0, 0);  
+      }
+      for(int i = 21; i &lt; 28; i++)
+      {
+        strip.setPixelColor(i, 0, j, 0, 0);  
+      }
+      for(int i = 28; i &lt; 35; i++)
+      {
+        strip.setPixelColor(i, 0, 0, j, 0);  
+      }
+      for(int i = 35; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, j, 0, j, 0);  
+      }
+        strip.show();
+        sensing();
+        buttonCheck();
+    } 
+}
+
+void fadeOut()
+{
+  for(int j = 255; j &gt;= 51 && rainbowAllowed; j = j - 7)
+    {
+      for(int i = 0; i &lt; 7; i++)
+      {
+        strip.setPixelColor(i, j, 0, 0, 0);  
+      }
+      for(int i = 7; i &lt; 14; i++)
+      {
+        strip.setPixelColor(i, j, (j/4.25f), 0, 0);  
+      }
+      for(int i = 14; i &lt; 21; i++)
+      {
+        strip.setPixelColor(i, j, j, 0, 0);  
+      }
+      for(int i = 21; i &lt; 28; i++)
+      {
+        strip.setPixelColor(i, 0, j, 0, 0);  
+      }
+      for(int i = 28; i &lt; 35; i++)
+      {
+        strip.setPixelColor(i, 0, 0, j, 0);  
+      }
+      for(int i = 35; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, j, 0, j, 0);  
+      }
+        strip.show();
+        sensing();
+        buttonCheck();
+    } 
+  for(int j = 50; j &gt;= 0 && rainbowAllowed; j = j - 5)
+    {
+      for(int i = 0; i &lt; 7; i++)
+      {
+        strip.setPixelColor(i, j, 0, 0, 0);  
+      }
+      for(int i = 7; i &lt; 14; i++)
+      {
+        strip.setPixelColor(i, j, (j/4.25f), 0, 0);  
+      }
+      for(int i = 14; i &lt; 21; i++)
+      {
+        strip.setPixelColor(i, j, j, 0, 0);  
+      }
+      for(int i = 21; i &lt; 28; i++)
+      {
+        strip.setPixelColor(i, 0, j, 0, 0);  
+      }
+      for(int i = 28; i &lt; 35; i++)
+      {
+        strip.setPixelColor(i, 0, 0, j, 0);  
+      }
+      for(int i = 35; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, j, 0, j, 0);  
+      }
+        strip.show();
+        sensing();
+        buttonCheck();
+    }  
+    delay(1000);
+}
+
+void rainbow()
+{
+  while(rainbowAllowed)
+  {
+    fadeIn();
+    if (!rainbowAllowed)
+    {
+      return;
+    }
+    int randomLoop = random(1, 7);
+    for(int i = 0; i &lt; randomLoop && rainbowAllowed; i++)
+    {  
+      int randomDirection = random(2);
+      int randomNumber = random(2, 6);
+      spin(randomDirection, randomNumber);
+      flash(3, 200);
+    }
+    if (!rainbowAllowed)
+    {
+      return;
+    }
+    fadeOut();
+  }
+}
+
+void fade()
+{
+  if(millisAfterHit &gt; 15000)
+    {
+      rainbowAllowed = true;
+      rainbow();
+    }
+    else if(millisAfterHit &gt;= 14980)
+    {
+      cs.reset_CS_AutoCal();
+      doRecalibrate = true;
+    }
+    else if(millisAfterHit &gt;= 130)
+    {
+      strip.clear();
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 120)
+    {
+      strip.clear();
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 110)
+    {
+      strip.clear();
+      strip.show();
+      cs.reset_CS_AutoCal();
+      doRecalibrate = true;
+    }
+    else if(millisAfterHit &gt;= 105)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 3 * fadeColor.r, 3 * fadeColor.g, 3 * fadeColor.b, 0);  
+      }
+      strip.show();
+      cs.reset_CS_AutoCal();
+      doRecalibrate = true;
+    }
+    else if(millisAfterHit &gt;= 100)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 15 * fadeColor.r, 15 * fadeColor.g, 15 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 95)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 27 * fadeColor.r, 27 * fadeColor.g, 27 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 90)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 39 * fadeColor.r, 39 * fadeColor.g, 39 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 85)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 51 * fadeColor.r, 51 * fadeColor.g, 51 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 80)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 63 * fadeColor.r, 63 * fadeColor.g, 63 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 75)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 75 * fadeColor.r, 75 * fadeColor.g, 75 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 70)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 87 * fadeColor.r, 87 * fadeColor.g, 87 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 65)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 99 * fadeColor.r, 99 * fadeColor.g, 99 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 60)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 111 * fadeColor.r, 111 * fadeColor.g, 111 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 55)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 123 * fadeColor.r, 123 * fadeColor.g, 123 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 50)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 135 * fadeColor.r, 135 * fadeColor.g, 135 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 45)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 147 * fadeColor.r, 147 * fadeColor.g, 147 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 40)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 159 * fadeColor.r, 159 * fadeColor.g, 159 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 35)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 171 * fadeColor.r, 171 * fadeColor.g, 171 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 30)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 183 * fadeColor.r, 183 * fadeColor.g, 183 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 25)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 195 * fadeColor.r, 195 * fadeColor.g, 195 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 20)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 207 * fadeColor.r, 207 * fadeColor.g, 207 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 15)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 219 * fadeColor.r, 219 * fadeColor.g, 219 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 10)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 231 * fadeColor.r, 231 * fadeColor.g, 231 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+    else if(millisAfterHit &gt;= 5)
+    {
+      for(int i = 0; i &lt; 42; i++)
+      {
+        strip.setPixelColor(i, 243 * fadeColor.r, 243 * fadeColor.g, 243 * fadeColor.b, 0);  
+      }
+      strip.show();
+    }
+}
+
+void loop()
+{
+  long start = millis();
+  long currentTime = (millis() - start); 
+  millisAfterHit = millisAfterHit + 10;
+  fade();
+  buttonCheck();
+  if(canPlay) {sensing();}
+}
+
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>
