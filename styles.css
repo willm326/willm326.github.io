@@ -1,6 +1,8 @@
 /*|| General Styles*/
 :root {
   --lavender: #977de4; /*Allows this specific shade of lavender to be reused across the site for consistency*/
+  --button-shadow: #977de45e;
+  --tile-hover: #777; /*Buttons using the tile class should use this color for hover highlights*/
 }
 
 body {
@@ -38,8 +40,6 @@ h2 {
 
 h3 {
   font-size: 160%;
-  margin-bottom: 18px;
-  margin-top: 12px;
 }
 
 a:link {
@@ -119,6 +119,12 @@ header {
   margin-top: 18px;
 }
 
+/* Used to make headers in tiles account for tile padding*/
+.tile h3 {
+  margin-bottom: 18px;
+  margin-top: 12px;
+}
+
 /*|| Home Page Style */
 
 /* Used to style rows on the home page so they have the same display style and gaps */
@@ -195,10 +201,6 @@ header {
 
 /*|| Projects Page Style */
 
-.project-section {
-  margin-bottom: 30px;
-}
-
 .project-grid {
   display: flex;
   flex-wrap: wrap;
@@ -208,19 +210,15 @@ header {
 
 .project {
   text-wrap: wrap;
-  background-color: #343434;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 10px 5px 7px #977de45e;
-  width: 325px;
+  padding-left: 20px;
+  padding-right: 20px;
+  margin-top: 0;
+  box-shadow: 10px 5px 7px var(--button-shadow);
+  width: 350px;
 }
 
 .project img {
   width: 100%;
-}
-
-.project-header {
-  margin: 0;
 }
 
 .role {
@@ -232,7 +230,7 @@ header {
 }
 
 .project:hover {
-  background-color: #777;
+  background-color: var(--tile-hover);
 }
 
 /*|| Individual Project Page Style */
@@ -255,8 +253,8 @@ iframe {
 }
 
 .button-group input:checked ~ .radio-button {
-  background-color: #2f2235;
-  box-shadow: 2px 2px 0px #977de45e;
+  background-color: #2c2235;
+  box-shadow: 2px 2px 0px var(--button-shadow);
 }
 
 .radio-button {
@@ -264,16 +262,15 @@ iframe {
   font-family: monospace;
   cursor: pointer;
 
-  background-color: #343434;
-  padding: 15px;
-  border-radius: 10px;
-  box-shadow: 5px 5px 7px #977de45e;
+  box-shadow: 5px 5px 7px var(--button-shadow);
 }
 
 .radio-button:hover {
-  background-color: #777;
+  background-color: var(--tile-hover);
 }
 
+/* Used to remove the default radio button from view,
+since they are replaced by tile buttons using labels. */
 .script-select {
   display: none;
 }
