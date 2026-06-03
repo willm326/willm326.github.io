@@ -149,6 +149,10 @@ header {
   margin-bottom: 0;
 }
 
+.featured.tile {
+  flex: 1 1 0px;
+}
+
 .featured img {
   width: 100%;
 }
@@ -196,6 +200,9 @@ header {
   }
   .skills {
     width: 100%;
+  }
+  .featured.tile {
+    flex: 1 1 auto;
   }
 }
 
