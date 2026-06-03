@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript">
+extends Quest
+## A script for any quest that requires the player to fill a specified shape.
+## Utilizes a [Piece] to display the shape to the player and mark blocks as filled
+
+## The shape the player must fill to complete this quest. The origin of the fill
+## shape is the position of this node (1 above the associated block).
+@export var fill_shape: PieceShape
+
+## Instructions on how to build the fill piece
+@export var fill_resource: PieceResource
+
+# Coordinates for fill shape to reference
+@onready var coordinates := Coordinates.new(self)
+
+# Has this piece been placed
+var _placed: bool = false
+# fill piece
+var _fill: Piece
+# Blocks remaining to fill
+var _vacant_blocks: Dictionary[Vector3i, Block]
+
+func _ready() -> void:
+	coordinates.position.y += 1
+
+## Function called by [QuestManger], update status accordingly
+func on_tower_piece_placed(piece: Piece) -> void:
+	if _placed:
+		_update_fill(piece.blocks)
+	elif piece.blocks.has(associated_block):
+		_create_fill_shape()
+	_check_fail_state(piece.blocks)
+
+# Uses fill_shape and fill_resource to create a piece to track player progress
+# and display the shape to the player
+func _create_fill_shape() -> void:
+	# Create piece to display to player
+	_fill = PieceFactory.assemble_piece(fill_resource, fill_shape)
+	add_child(_fill)
+	_fill.process_mode = Node.PROCESS_MODE_DISABLED # disable collision via disabling node processing
+	#_fill.coordinates.global_position = self.global_position
+	# Add blocks to container for checking completion
+	for block in _fill.blocks:
+		_vacant_blocks.set(block.coordinates.global_position, block)
+	_initialize_fill()
+	_placed = true
+
+# Checks if the fill is impossible to complete
+# TODO: Modify or remove when adding block destruction
+func _check_fail_state(placed_blocks: Array[Block]) -> void:
+	if placed_blocks.any(
+		func(placed_block: Block) -> bool:
+			for vacant_coordinates: Vector3i in _vacant_blocks.keys():
+				if Utils.is_vector3i_below(vacant_coordinates, placed_block.coordinates.global_position):
+					return true
+			return false
+	) or not tower._is_piece_inside_border(_fill): # HACK: this is a private method of tower, maybe should be public though
+		status = Status.FAILED
+
+# Removes a block from the vacant list and removes associated mesh
+func _fill_block(block: Block) -> void:
+	_vacant_blocks[block.coordinates.global_position].disable_mesh()
+	_vacant_blocks.erase(block.coordinates.global_position)
+	if (_vacant_blocks.is_empty()):
+		status = Status.COMPLETED
+
+# Remove blocks from the provided piece from the fill
+func _update_fill(blocks: Array[Block]) -> void:
+	for block: Block in blocks:
+		if _vacant_blocks.has(block.coordinates.global_position):
+			_fill_block(block)
+
+# Remove blocks already on the tower from the fill
+func _initialize_fill() -> void:
+	var to_remove: Array[Block] #Array to avoid editing _vacant_blocks in the loop
+	for block_coordinates: Vector3i in _vacant_blocks:
+		var block: Block = tower.block_container_view.find(block_coordinates)
+		if block != null:
+			to_remove.append(block)
+	_update_fill(to_remove)
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>

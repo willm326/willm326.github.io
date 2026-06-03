@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript">
+@icon("res://editor_icons/objective.svg")
+@abstract class_name Quest extends Sprite3D
+## A Quest is a challenge attached to a specific block, giving the player a reward upon
+## completion. This base class is intended to be inherited from, and doesn't represent any
+## specific class on its own
+
+## Tracks the status of a quest:
+## IN_PROGRESS - Player can still fail or complete this quest
+## COMPLETED - Player has completed this quest, ready to give reward
+## FAILED - This quest is impossible to complete
+enum Status {IN_PROGRESS, COMPLETED, FAILED}
+
+## The name of the Quest
+@export var title: String
+## The description of the Quest, will be shown to the player
+@export var description: String
+## The amount of stockpile rewarded for completion
+@export var stockpile_reward: int
+## The icon displayed for this Quest
+@export var icon: Texture2D
+## The block types this quest can be attached to
+@export var valid_block_types: Array[PackedScene]
+
+## The block this quest is attached to
+var associated_block: Block
+## The tower this quest belongs to
+var tower: Tower
+## If this quest is complete
+var status: Status = Status.IN_PROGRESS
+
+## Function called by [QuestManager], update [member status] accordingly
+func on_block_action(_action: Action) -> void:
+	pass
+
+## Function called by [QuestManger], update [member status] accordingly
+func on_tower_piece_placed(_piece: Piece) -> void:
+	pass
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>

@@ -1,0 +1,236 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript">
+class_name QuestManager extends Node
+## Class that creates, tracks, and updates [Quest] objects 
+
+
+## Emits when an action is created.
+signal action_created(action: Action)
+## Emits when a quest is added to a block
+signal quest_added(quest: Quest)
+## Emits when a quest is completed
+signal quest_completed(quest: Quest)
+## Emits when a quest is failed
+signal quest_failed(quest: Quest)
+
+## List of quests to be added to pieces during gameplay
+@export var quests: Array[PackedScene]
+## Tower reference for checking actions
+@export var tower: Tower
+
+@export_category("Selection Criteria")
+## % Base chance of a quest being added to a new piece
+@export var starting_chance: int
+## Minimum chance to spawn a quest
+@export var minimum_chance: int
+## % decrease to chance per quest on the tower (won't go below [member minimum_chance])
+@export var chance_decrease: int
+## Maximum amount of quests allowed on the tower
+@export var maximum_quests: int
+## Minimum height to start spawning quests
+@export var minimum_height: int
+
+# A list of quests on the active piece or tower, accessed by the block they are associated with
+var _active_quests: Dictionary[Block, Quest]
+# A list of quests in queue
+var _inactive_quests: Dictionary[Block, Quest]
+# Held quest if exists
+var _held_quest: Quest = null
+
+
+## Returns true if [param piece] has a quest attached to it.
+# NOTE: this function should be updated in case the way quests are attached to pieces
+#       changes.
+static func piece_has_quest(piece: Piece) -> bool:
+	return piece.blocks.any(
+		func(block: Block):
+			return block.get_children().any(
+				func(child: Node):
+					return child is Quest
+			)
+	)
+
+
+func _ready() -> void:
+	assert(tower != null, "Tower reference is needed to update quests")
+	# NOTE: reimplement action information to quest manager somehow
+	if not tower.piece_placed.is_connected(_on_tower_piece_placed):
+		tower.piece_placed.connect(_on_tower_piece_placed)
+
+
+## Adds a [Quest] to one of the blocks of [param piece] if possible
+func add_quest(piece: Piece) -> void:
+	var quest_count: int = _active_quests.size() + _inactive_quests.size()
+	if  quest_count >= maximum_quests or tower.height < minimum_height:
+		return
+	# Generate a random number to determine if a quest should be added
+	var _spawn_chance = max(starting_chance - chance_decrease * quest_count, minimum_chance)
+	if randi_range(1, 100) > _spawn_chance:
+		return
+	var eligible_blocks: Array[Block] = piece.get_surface_blocks()
+	var new_quest: Quest = _choose_quest(_choose_blocks(eligible_blocks))
+	if new_quest:
+		_inactive_quests.set(new_quest.associated_block, new_quest)
+		_assign_quest_child(new_quest.associated_block, new_quest)
+
+
+# Selects one block of each type on the current piece
+# Helps make quest selection more efficient when there are many blocks of the same type
+func _choose_blocks(eligible_blocks: Array[Block]) -> Array[Block]:
+	return [eligible_blocks.pick_random()]
+	
+	# Alternative Implementation when there are blocks that have no matching quests
+	@warning_ignore("unreachable_code")
+	var chosen_blocks: Array[Block]
+	eligible_blocks.shuffle()
+	for block: Block in eligible_blocks:
+		var valid_block: bool = true
+		for chosen_block: Block in chosen_blocks:
+			if block.scene_file_path == chosen_block.scene_file_path:
+				valid_block = false
+				break
+		if valid_block:
+			chosen_blocks.append(block)
+	return chosen_blocks
+
+
+# Selects a valid quest/block pair using the provided [param chosen_blocks] array
+# The associated block is saved in the associated_block field of the quest
+# Returns null if no valid quest is found
+func _choose_quest(chosen_blocks: Array[Block]) -> Quest:
+	self.quests.shuffle()
+	for quest_scene: PackedScene in self.quests:
+		var quest: Quest = quest_scene.instantiate()
+		for block: Block in chosen_blocks:
+			if _is_block_type_valid(block.scene_file_path, quest):
+				quest.associated_block = block
+				return quest
+		quest.free()
+	return null
+
+
+# Checks if a quest can be attached to a block of type block_type
+# HACK: Compares scene resource paths to check type (since not all blocks have a unique type)
+func _is_block_type_valid(block_type: String, quest: Quest) -> bool:
+	for valid_type: PackedScene in quest.valid_block_types:
+		if valid_type.resource_path == block_type:
+			return true
+	return false
+
+
+# Adds a quest as a child to a block
+func _assign_quest_child(block: Block, quest: Quest) -> void:
+	block.add_child(quest)
+	quest.tower = tower
+	quest.texture = quest.icon
+	quest.position.y += 1
+
+
+# Checks if a quest is complete, and generates stockpile if so
+# Returns true if the quest is ready for removal (completed or failed)
+func _evaluate_quest(quest: Quest) -> bool:
+	if quest.status == Quest.Status.COMPLETED:
+		action_created.emit(AddStockpileAction.new(quest.stockpile_reward))
+		quest_completed.emit(quest)
+		return true
+	elif quest.status == Quest.Status.FAILED:
+		quest_failed.emit(quest)
+		return true
+	
+	return false
+
+
+# Evaluates all active quests and erases any that are failed or completed
+func _evaluate_all() -> void:
+	var to_erase: Array[Block]
+	for quest_block: Block in _active_quests.keys():
+		if _evaluate_quest(_active_quests[quest_block]):
+			to_erase.append(quest_block)
+	
+	for block: Block in to_erase:
+		_erase_quest(block)
+
+
+# Moves a quest at the specified block from the queue list to the active list 
+func _set_quest_active(quest_block: Block) -> void:
+	_active_quests[quest_block] = _inactive_quests[quest_block]
+	quest_added.emit(_active_quests[quest_block])
+	_inactive_quests.erase(quest_block)
+
+
+# Free a quest and remove it from the active list
+func _erase_quest(associated_block: Block) -> void:
+	_active_quests[associated_block].queue_free()
+	_active_quests.erase(associated_block)
+
+
+# Checks if the provided piece has a quest block and returns it
+# active specifies whether to check the active or inactive quest list
+func _get_quest_block(piece: Piece, active: bool) -> Block:
+	# No quest block if piece is null
+	if not piece:
+		return null
+	
+	# NOTE: Relies on assumption that a piece has at most one quest
+	for block: Block in piece.blocks:
+		if active and _active_quests.has(block) or not active and _inactive_quests.has(block):
+			return block
+	return null
+
+
+# Store a held quest as inactive
+func _hold_quest(quest: Quest) -> void:
+	# Add quest on held piece to active queue (now active piece)
+	if _held_quest:
+		_active_quests[_held_quest.associated_block] = _held_quest
+	# Set quest on held piece to inactive
+	_held_quest = quest
+	if quest != null:
+		_active_quests.erase(quest.associated_block)
+
+
+## This function is called to update the state of all active quests after a
+## [TowerAction] is executed.
+func update_tower_action_occured(action: TowerAction) -> void:
+	for block: Block in action.targets:
+		if _active_quests.has(block):
+			_active_quests[block].on_block_action(action)
+			if _evaluate_quest(_active_quests[block]):
+				_erase_quest(block)
+
+
+# Set quests active if there is one on the active piece
+func _on_tower_piece_spawned(piece: Piece) -> void:
+	var quest_block: Block = _get_quest_block(piece, false)
+	if quest_block:
+		_set_quest_active(quest_block)
+
+
+# Forwards tower piece place signal to all active Quests and evaluates them
+func _on_tower_piece_placed(piece: Piece) -> void:
+	# Can't erase blocks from dictionary while iterating over it
+	for quest_block: Block in _active_quests:
+		_active_quests[quest_block].on_tower_piece_placed(piece)
+	_evaluate_all()
+
+
+func _on_piece_held(piece: Piece) -> void:
+	# Add held quest back to active list even if no new quest is held
+	var quest_block: Block = _get_quest_block(piece, true) if piece else null
+	_hold_quest(_active_quests[quest_block] if _active_quests.has(quest_block) else null)
+
+
+func _on_piece_bank_piece_added(piece: Piece) -> void:
+	add_quest(piece)
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>
