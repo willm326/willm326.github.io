@@ -228,6 +228,10 @@ header {
   width: 100%;
 }
 
+.dark-gif {
+  filter: brightness(125%);
+}
+
 .role {
   font-style: italic;
 }
