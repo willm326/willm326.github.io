@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript">
+@abstract class_name PieceForm extends Resource
+## Data representation of a piece.
+##
+## Includes all the needed data to generate a [Piece], used to store it for
+## the [PieceBank].
+
+## The sound to play when placing a piece of this type
+@export var place_sound: PairedAudio
+## Quest to include when assembling
+@export var quest: PackedScene
+## Coordinate of the block the quest will be added to
+@export var quest_coordinate: Vector3i
+## Chance of being picked during form selection
+@export var weight: int = 1
+
+## Used to ensure block mapping is deterministic
+var rng := CustomRandomNumberGenerator.new():
+	set(value):
+		push_error("rng should not be set. Use initialize_rng to set seed instead")
+	get():
+		return rng
+# Used to restore rng to initial state
+var _initial_state: int
+
+func initialize_rng(new_seed: int) -> void:
+	rng.seed = new_seed
+	_initial_state = rng.state
+
+## Returns a mapping of coordinates to the corresponding [BlockResource]
+func get_block_mapping() -> Dictionary[Vector3i, BlockResource]:
+	# Reset state of rng so block mapping is the same every call
+	rng.state = _initial_state
+	return _generate_block_mapping()
+
+
+# Returns a mapping of coordinates to the corresponding [BlockResource]
+# The public function adds required rng initialization, and calls this function
+@abstract func _generate_block_mapping() -> Dictionary[Vector3i, BlockResource]
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>

@@ -20,21 +20,30 @@
 
     <div class="content">
       <h2>Tower of Genn</h2>
-      <img src="../images/tower-of-genn-1.png" class="project-img" />
-      <img src="../images/quest_complete.gif" class="project-img dark-gif" />
+      <div class="image-group">
+        <img src="../images/tower-of-genn-1.png" class="project-img" />
+        <img src="../images/quest_complete.gif" class="project-img dark-gif" />
+      </div>
+
+      <div class="embed-flex">
+        <iframe
+          src="https://store.steampowered.com/widget/4602770/"
+          frameborder="0"
+          width="80%"
+          height="190"
+          class="game embed"
+        ></iframe>
+      </div>
 
       <h3>Description</h3>
       <p>
-        Tower of Genn is a student project that I have developed with a team of
-        about 20 UC Irvine students using the Godot game engine and gdscript. It
-        is currently still in development, with plans for a Steam release
-        December of this year. The current version of the game can be played on
+        Tower of Genn is a student project developed with a team of about 20 UC
+        Irvine students using the Godot game engine and gdscript. It is
+        currently still in development, with plans for a Steam release December
+        of this year. The current version of the game can be played on
         <a href="https://dekkerd.itch.io/tower-of-genn" target="_blank">
           itch.io</a
-        >.
-      </p>
-      <p>
-        The game is a light strategy-puzzle game, where players place blocks
+        >. The game is a light strategy-puzzle game, where players place blocks
         strategically to build their tower as high as possible while managing
         their resources.
       </p>
@@ -56,7 +65,7 @@
         <li>Seeded Piece Generation System</li>
       </ul>
 
-      <h3>Code Samples and Development Pictures</h3>
+      <h3>Code Samples</h3>
       <p>
         The GitHub for this project is a private repository. However, I have
         included some of the code I worked on here:
@@ -67,22 +76,24 @@
             type="radio"
             class="script-select"
             name="scripts"
-            id="quest.gd"
-            value="tower-of-genn/quest.html"
+            id="piece_form.gd"
+            value="tower-of-genn/piece-form.html"
             checked
           />
-          <label class="tile radio-button" for="quest.gd">quest.gd</label>
+          <label class="tile radio-button" for="piece_form.gd"
+            >piece_form.gd</label
+          >
         </div>
         <div>
           <input
             type="radio"
             class="script-select"
             name="scripts"
-            id="quest_manager.gd"
-            value="tower-of-genn/quest-manager.html"
+            id="piece_template.gd"
+            value="tower-of-genn/piece-template.html"
           />
-          <label class="tile radio-button" for="quest_manager.gd">
-            quest_manager.gd
+          <label class="tile radio-button" for="piece_template.gd">
+            piece_template.gd
           </label>
         </div>
         <div>
@@ -90,38 +101,39 @@
             type="radio"
             class="script-select"
             name="scripts"
-            id="fill_shape.gd"
-            value="tower-of-genn/fill-shape.html"
+            id="piece_factory.gd"
+            value="tower-of-genn/piece-factory.html"
           />
-          <label class="tile radio-button" for="fill_shape.gd">
-            fill_shape.gd
+          <label class="tile radio-button" for="piece_factory.gd">
+            piece_factory.gd
           </label>
         </div>
       </div>
       <div class="sample">
         <iframe
           title="Code Sample"
-          src="../sample-code/tower-of-genn/quest.html"
+          src="../sample-code/tower-of-genn/piece-form.html"
+          class="sample-code"
         ></iframe>
-        <p class="tile quest.gd caption">
-          This is the script for the <strong>Quest</strong> class. A Quest is a
-          challenge attached to a specific block, giving the player a reward
-          upon completion. The base class outlines information common to all
-          types of Quests, and is utilized by other game systems to generate and
-          track Quest information.
+        <p class="tile piece_form.gd caption">
+          This is the script for the <strong>PieceForm</strong> class. A
+          PieceForm is a Godot Resource (custom data structure) that stores all
+          of the information about a specific Piece. Its used to store
+          information about generated pieces, and used to build them when they
+          need to be spawned in game.
         </p>
-        <p class="tile quest_manager.gd caption" style="display: none">
-          This is the script for the <strong>Quest Manager</strong> class. This
-          class spawns and updates the status of quests in the game. The
-          functions at the bottom of the script starting with
-          <code>_on</code> are signal listener functions. They are called when
-          other game systems signal that specific events have occured, similar
-          to listening for Events in other programming languages.
+        <p class="tile piece_template.gd caption" style="display: none">
+          This is the script for the <strong>PieceTemplate</strong> class. This
+          class is used in Piece Generation to store groups of Piece attributes
+          such as the shape and blocks they contain, and generate random
+          PieceForms to give to the player.
         </p>
-        <p class="tile fill_shape.gd caption" style="display: none">
-          This is the script for the <strong>Fill Shape Quest</strong>, one of
-          the quests in the game. This specific quest tasks the player with
-          filling a specified shape with blocks.
+        <p class="tile piece_factory.gd caption" style="display: none">
+          This is the script for the <strong>PieceFactory</strong> class. This
+          class is the core of Piece generation. It stores a list of
+          PieceTemplates, which it sorts into different groups based on their
+          category. It then randomly selects a template based on its category
+          and rarity, and uses the template to generate a PieceForm.
         </p>
       </div>
     </div>

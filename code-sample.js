@@ -5,8 +5,6 @@ function swapCode(fileName, targetFrame) {
 }
 
 function swapCaption(className) {
-  let caption = document.getElementsByClassName(className);
-
   let captions = document.getElementsByClassName("caption");
   for (let i = 0; i < captions.length; i++) {
     if (captions[i].classList.contains(className)) {
@@ -17,7 +15,7 @@ function swapCaption(className) {
   }
 }
 
-let codeWindow = document.querySelector("iframe");
+let codeWindow = document.getElementsByClassName("sample-code").item(0);
 
 let buttons = document.getElementsByTagName("input");
 for (let i = 0; i < buttons.length; i++) {

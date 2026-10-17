@@ -1,0 +1,176 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript">
+class_name PieceFactory extends Node
+## Generates [Piece] nodes.
+##
+## This script is aware of difficulty scaling and generates [Piece] nodes
+## accordingly.
+
+## Maximum combined weight of the categories. Warnings will be generated if this
+## threshold is exceeded, but generation will still work.
+const WEIGHT_MAX: int = 100
+
+## List of pieces that the factory chooses from during piece generation.
+@export var piece_templates: Array[PieceTemplate]
+## List of weights for each category per difficulty level
+## The array should only include integer weights
+@export var category_weights: Dictionary[PieceTemplate.Category, Array]
+## List of weights for each rarity
+@export var rarity_weights: Dictionary[PieceTemplate.Rarity, int]
+
+## Mirror of [member DifficultyScaler.difficulty_index].
+## When setting, automatically updates [member _resource_weight_map].
+var difficulty_index: int = 0:
+	set(value):
+		difficulty_index = value
+		_category_weight_map = _generate_category_weight_map(difficulty_index)
+
+# Used to make choices during piece generation
+var _rng := CustomRandomNumberGenerator.new()
+# Stores templates organized by category for faster generation.
+# All objects in the array are of type PieceTemplate (Godot prevents nested typing)
+var _templates_by_category: Dictionary[PieceTemplate.Category, Array]
+# Stores templates weights by category, matching the corresponding templates in _templates_by_category.
+# All objects in the array are of type int (Godot prevents nested typing)
+var _template_weights: Dictionary[PieceTemplate.Category, Array]
+# Mapping of Categories to weights, updated when difficulty index changes
+@onready var _category_weight_map: Dictionary[PieceTemplate.Category, int] = \
+		_generate_category_weight_map(DifficultyScaler.MIN_DIFFICULTY_INDEX)
+
+
+# Do some error checking in _ready
+func _ready() -> void:
+	_validate_category_weights()
+	_sort_templates()
+
+
+#region Public Functions
+## Intialize the rng with [param new_seed]
+func initialize_rng(new_seed: int) -> void:
+	_rng.seed = new_seed
+
+
+## Generates a new [PieceForm].
+func generate_piece() -> PieceForm:
+	# Select random category based on weights
+	var selected_category: PieceTemplate.Category = _select_category()
+	# Select a random template with the selected category and rarity
+	var piece_template: PieceTemplate = _select_piece_template(selected_category)
+	# Select a random piece form from the selected template
+	var piece_form: PieceForm = piece_template.select_form(_rng).duplicate()
+	# Seed piece form to determine randomness of modifiers
+	piece_form.initialize_rng(_rng.generate_seed())
+	return piece_form
+
+
+## Update generation parameters based on information in [param config_reader]
+func read_config() -> void:
+	_load_config(GameRules)
+	_validate_category_weights()
+	_category_weight_map = _generate_category_weight_map(difficulty_index)
+#endregion
+
+
+#region Piece Generation
+# Selects the category using the current weights, which change based on the 
+# difficulty index.
+func _select_category() -> PieceTemplate.Category:
+	return _rng.pick_random_weighted(_category_weight_map.keys(), _category_weight_map.values())
+
+
+# Selects a piece template from the provided category.
+# Performs a weighted selection using the piece template rarities.
+func _select_piece_template(category: PieceTemplate.Category) -> PieceTemplate:
+	return _rng.pick_random_weighted(_templates_by_category[category], _template_weights[category])
+#endregion
+
+
+#region Helper Functions
+# Generates a weight mapping from resource to weight given a difficulty index.
+# This cached mapping is used to look up weights when generating pieces.
+func _generate_category_weight_map(index: int) -> Dictionary[PieceTemplate.Category, int]:
+	var new_map: Dictionary[PieceTemplate.Category, int] = {}
+	# Add an entry for every category
+	for category: PieceTemplate.Category in self.category_weights.keys():
+		if category_weights[category].size() > index:
+			new_map[category] = category_weights[category][index]
+		else:
+			push_warning("Missing mapping for difficulty index " + str(index))
+			@warning_ignore("integer_division")
+			new_map[category] = 100 / self.category_weights.keys().size()
+	return new_map
+
+
+# Validates that all category weights add to 100 and are all integers
+func _validate_category_weights() -> void:
+	var max_difficulty: int = category_weights[0].size()
+	for category: PieceTemplate.Category in category_weights:
+		if category_weights[category].size() != max_difficulty:
+			push_error("Category weight arrays are different sizes")
+			max_difficulty = max(max_difficulty, category_weights[category].size())
+	for i: int in range(DifficultyScaler.MIN_DIFFICULTY_INDEX, category_weights[0].size()):
+		var sum: int = 0
+		for category: PieceTemplate.Category in category_weights:
+			if typeof(category_weights[category][i]) != Variant.Type.TYPE_INT:
+				push_error(str(category_weights[category][i]) + " is not an integer")
+				category_weights[category][i] = 0
+			elif category_weights[category][i] < 0:
+				push_error(str(category_weights[category][i]) + " should not be negative.")
+				category_weights[category][i] *= -1
+			sum += category_weights[category][i]
+		if sum != WEIGHT_MAX:
+			push_warning("Category weights do not add up to " + str(WEIGHT_MAX) + " at difficulty index " + str(i))
+
+
+# Sorts all templates into containers based on category, and generates a matching weight list.
+func _sort_templates() -> void:
+	_templates_by_category.clear()
+	for template: PieceTemplate in piece_templates:
+		if not _templates_by_category.has(template.category):
+			# Define arrays with nested types to allow passing into functions
+			# that check the Array element type
+			var template_array: Array[PieceTemplate] = []
+			_templates_by_category[template.category] = template_array
+			var int_array: Array[int] = []
+			_template_weights[template.category] = int_array
+		_templates_by_category[template.category].append(template)
+		_template_weights[template.category].append(rarity_weights[template.rarity])
+
+
+# Helper function that loads all of the config weights for categories and rarities,
+# and loads template rarity information from the config
+func _load_config(config_reader: ConfigReader) -> void:
+	for rarity: PieceTemplate.Rarity in self.rarity_weights:
+		rarity_weights[rarity] = config_reader.read_value(
+			"RarityWeights", 
+			PieceTemplate.Rarity.keys()[rarity].to_snake_case(), 
+			Variant.Type.TYPE_INT,
+			rarity_weights[rarity])
+	for category: PieceTemplate.Category in self.category_weights:
+		category_weights[category] = config_reader.read_value(
+			"CategoryWeights", 
+			PieceTemplate.Category.keys()[category].to_snake_case(), 
+			Variant.Type.TYPE_ARRAY, 
+			category_weights[category])
+	for template: PieceTemplate in self.piece_templates:
+		var template_file_name: String = template.resource_path.get_slice("/", template.resource_path.get_slice_count("/") - 1)
+		var rarity: String = config_reader.read_value(
+			"TemplateRarity",
+			template_file_name.substr(0, template_file_name.find(".")), # Take off .tres
+			Variant.Type.TYPE_STRING,
+			PieceTemplate.Rarity.keys()[template.rarity])
+		template.rarity = PieceTemplate.Rarity.get(rarity.to_upper())
+	_sort_templates()
+#endregion
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>

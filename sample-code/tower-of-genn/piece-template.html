@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link href="\prism-syntax-highlights/prism.css" rel="stylesheet" />
+  </head>
+  <body>
+    <pre>
+      <code class="language-gdscript">
+@icon("uid://txrgs3rs1b4d")
+class_name PieceTemplate extends Resource
+## Base class for [Piece] resources.
+##
+## Defines how to generate a specific piece
+
+## Used in piece generation
+enum Category {
+	## For pieces with an overall neutral effect
+	FILLER,
+	## Provides a challenge
+	NEGATIVE,
+	## Provides a benfit
+	POSITIVE,
+}
+
+## Used to define how often this template is chosen in piece generation
+enum Rarity {
+	COMMON,
+	UNCOMMON,
+	RARE,
+	## Reserved for very situational templates
+	ULTRA_RARE,
+	## Never occurs naturally in the RNG system
+	DEVELOPER,
+}
+
+## Category of the template, determines how it will be selected in piece generation
+## based on current difficulty.
+@export var category: Category
+## Rarity of the template, determines how often it will be selected in piece generation
+@export var rarity: Rarity
+## The sound to play when placing a piece of this type
+@export var place_sound: PairedAudio = preload("res://assets/audio/resources/stone_placement.tres")
+
+@export_group("Standard Piece Forms", "standard")
+## A list of shapes to pick from for [StandardPieceForm]s.
+## Defined using shape groups: Each shape has a chance of selection
+## based on its weight.
+@export var standard_shape_groups: Array[ShapeBase]
+## If a standard form is selected, the [BlockResource] that will fill the shape
+@export var standard_fill_block: BlockResource
+## List of modifiers to apply to the block_mapping for standard forms
+@export var standard_modifiers: Array[PieceModifier]
+
+@export_group("Unique Piece Forms", "unique")
+## A list of possible unique [UniquePieceForm]s, each with equal chance of selection
+@export var unique_piece_forms: Array[UniquePieceForm]
+
+var _piece_forms: Array[PieceForm]:
+	get:
+		if _piece_forms.is_empty():
+			_piece_forms = _create_standard_form_list(standard_shape_groups)
+			_piece_forms.append_array(unique_piece_forms)
+			_load_weights()
+		return _piece_forms
+# The weight of each piece form
+var _weights: Array[int]
+
+
+# Creates the internal list of piece forms
+func _create_standard_form_list(shapes_list: Array[ShapeBase]) -> Array[PieceForm]:
+	var form_list: Array[PieceForm]
+	for shape_base: ShapeBase in shapes_list:
+		if shape_base is Shape:
+			form_list.append(_create_form(shape_base))
+		else:
+			form_list.append_array(_create_standard_form_list(shape_base.shapes))
+	return form_list
+
+
+# Loads weights for all the piece forms into _weights
+func _load_weights() -> void:
+	_weights.clear()
+	for form: PieceForm in _piece_forms:
+		_weights.append(form.weight)
+
+
+# Creates a standard form with the given shape
+func _create_form(shape: Shape) -> PieceForm:
+	var form := StandardPieceForm.new(shape, standard_fill_block)
+	form.place_sound = place_sound
+	form.modifiers = self.standard_modifiers
+	form.weight = shape.weight
+	return form
+
+
+## Returns a random form for this template
+func select_form(rng: CustomRandomNumberGenerator) -> PieceForm:
+	return rng.pick_random_weighted(_piece_forms, _weights)
+      </code>
+    </pre>
+    <script src="\prism-syntax-highlights/prism.js"></script>
+  </body>
+</html>
